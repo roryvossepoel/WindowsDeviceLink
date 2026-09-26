@@ -1,6 +1,10 @@
 # WindowsDeviceLink validation matrix
 
-Last updated: 2026-09-25
+Last updated: 2026-09-26
+
+The table below records earlier hardware validation, not a fresh 0.11 hardware certification.
+Before releasing 0.11, repeat Interactive sign-in/retry, DeviceCode sign-in/refresh/sign-out,
+Direct pre-association/removal, and Backend assignment/offboarding in Windows and WinPE.
 
 The primary Windows Autopilot Device Preparation Device Association workflow has been validated on physical AMD64 hardware across Windows 11 and AMD64 Windows PE.
 
@@ -16,12 +20,6 @@ The primary Windows Autopilot Device Preparation Device Association workflow has
 | CSV accepted by Intune | Pass | Pass |
 | Export to directory / root | Pass | Pass |
 | Device-code authentication | Pass | Pass |
-| Client-secret authentication | Pass | Pass |
-| Existing access token | Pass | Pass |
-| Environment-variable authentication | Pass | Pass |
-| Certificate object | Pass | Pass |
-| Certificate thumbprint | Pass | Pass |
-| Certificate subject name | Pass | Pass |
 | Device Association lookup: no match | Pass | Pass via status lookup |
 | Device Association lookup by serial number | Pass | Pass via status lookup |
 | Device Association lookup by association ID | Pass | Not repeated |
@@ -147,9 +145,8 @@ The parameter regression suite passed, including validation that:
 - webhook registration requires `WebhookUri` and rejects cloud-only authentication inputs;
 - delegated `Interactive` and `DeviceCode` authentication can omit `TenantId`; `DeviceCode` defaults to the `organizations` authority;
 - Device Association lookup requires exactly one selector;
-- ClientSecret operations require the complete credential input set.
 
-Validated authentication methods continue to cover DeviceCode, Interactive, ClientSecret, AccessToken, Certificate, CertificateThumbprint, CertificateSubjectName, EnvironmentVariable and ManagedIdentity where applicable. Webhook registration remains an explicit `Register-WindowsDeviceLink -Method Webhook` operation.
+The 0.11 Direct surface supports Interactive and DeviceCode only. Backend and low-level Webhook use API authentication. App-only and public AccessToken routes are rejected; internal delegated token reuse remains covered by regression tests.
 
 
 

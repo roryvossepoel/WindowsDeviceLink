@@ -152,6 +152,12 @@ jobs:
           $ErrorActionPreference = 'Stop'
           .\tests\Online-Method-Validation.ps1 -ModulePath $env:WDL_MODULE_PATH
 
+      - name: Validate supported authentication routes and Backend CLI
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          .\tests\Auth-Routes-Validation.ps1 -ModulePath $env:WDL_MODULE_PATH
+
       - name: Validate authentication and secret handling
         shell: powershell
         run: |

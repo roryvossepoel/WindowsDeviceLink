@@ -23,6 +23,6 @@ catch {
 }
 
 # Static wiring guard: the public removal command must use the hardened DELETE helper.
-$command=(Get-Command Remove-WindowsDeviceLinkAssociation -Module WindowsDeviceLink).ScriptBlock.ToString()
+$command=(& (Get-Module WindowsDeviceLink) { (Get-Command Remove-WindowsDeviceLinkAssociationCore).ScriptBlock.ToString() })
 if($command -notmatch 'Invoke-WindowsDeviceLinkGraphDelete'){throw 'FAIL: public removal command is not wired to the hardened DELETE helper.'}
 Write-Host 'PASS: public removal command uses hardened DELETE transport'

@@ -129,12 +129,6 @@ foreach ($name in $writeCommands) {
 Write-Host 'PASS: state-changing commands expose ShouldProcess controls'
 
 $secureParameters = @(
-    @{ Command='Connect-WindowsDeviceLink'; Parameter='AccessToken' },
-    @{ Command='Get-WindowsDeviceLinkAssociation'; Parameter='AccessToken' },
-    @{ Command='Get-WindowsDeviceLinkStatus'; Parameter='AccessToken' },
-    @{ Command='Initialize-WindowsDeviceLink'; Parameter='AccessToken' },
-    @{ Command='Register-WindowsDeviceLink'; Parameter='AccessToken' },
-    @{ Command='Remove-WindowsDeviceLinkAssociation'; Parameter='AccessToken' }
     @{ Command='Get-WindowsDeviceLinkBackendTenant'; Parameter='BackendApiKey' }
     @{ Command='Set-WindowsDeviceLinkTenant'; Parameter='BackendApiKey' }
 )
@@ -143,14 +137,14 @@ foreach ($item in $secureParameters) {
     Assert-True ($command.Parameters.ContainsKey($item.Parameter)) "$($item.Command) is missing -$($item.Parameter)."
     Assert-True ($command.Parameters[$item.Parameter].ParameterType -eq [securestring]) "$($item.Command) -$($item.Parameter) must remain SecureString."
 }
-Write-Host 'PASS: access-token parameters remain SecureString'
+Write-Host 'PASS: backend-key parameters remain SecureString'
 
 # Interactive authentication intentionally supports normal single-tenant use without
 # requiring callers to supply a tenant GUID. Explicit -TenantId remains available.
 $connectCommand = Get-Command Connect-WindowsDeviceLink
 $tenantParameter = $connectCommand.Parameters['TenantId']
 $interactiveAttribute = @($tenantParameter.Attributes | Where-Object {
-    $_ -is [System.Management.Automation.ParameterAttribute] -and $_.ParameterSetName -eq 'Interactive'
+    $_ -is [System.Management.Automation.ParameterAttribute] -and $_.ParameterSetName -in @('Interactive','__AllParameterSets')
 }) | Select-Object -First 1
 Assert-True ($null -ne $interactiveAttribute) 'Connect-WindowsDeviceLink -TenantId is not available in the Interactive parameter set.'
 Assert-True (-not $interactiveAttribute.Mandatory) 'Connect-WindowsDeviceLink -TenantId must remain optional for Interactive authentication.'
@@ -175,7 +169,7 @@ Write-Host 'PASS: tenant assignment separates Direct and Backend mode without fo
 $removeCommand = Get-Command Remove-WindowsDeviceLinkAssociation -Module WindowsDeviceLink
 Assert-True (-not $removeCommand.Parameters['SerialNumber'].Attributes.Mandatory) 'Remove-WindowsDeviceLinkAssociation -SerialNumber must remain optional.'
 Assert-True (-not $removeCommand.Parameters['AssociationId'].Attributes.Mandatory) 'Remove-WindowsDeviceLinkAssociation -AssociationId must remain optional.'
-$removeScript = $removeCommand.ScriptBlock.ToString()
+$removeScript = & (Get-Module WindowsDeviceLink) { (Get-Command Remove-WindowsDeviceLinkAssociationCore).ScriptBlock.ToString() }
 Assert-True ($removeScript -match 'Win32_BIOS') 'Removal command no longer contains the local BIOS serial-number fallback.'
 Assert-True ($removeScript -match 'No target specified\. Using local device serial number') 'Removal command no longer reports its automatically selected local serial number.'
 Write-Host 'PASS: association removal keeps local-device serial fallback'
@@ -184,7 +178,7 @@ Write-Host 'PASS: association removal keeps local-device serial fallback'
 # DeviceLink identity object is unavailable/incomplete but the physical BIOS
 # serial is readable (important in WinPE and after local firmware reset).
 $statusCommand = Get-Command Get-WindowsDeviceLinkStatus -Module WindowsDeviceLink
-$statusScript = $statusCommand.ScriptBlock.ToString()
+$statusScript = & (Get-Module WindowsDeviceLink) { (Get-Command Get-WindowsDeviceLinkStatusCore).ScriptBlock.ToString() }
 Assert-True ($statusScript -match 'Win32_BIOS') 'Get-WindowsDeviceLinkStatus no longer contains the local BIOS serial-number fallback.'
 Assert-True ($statusScript -match 'lookupSerialNumber') 'Get-WindowsDeviceLinkStatus no longer keeps a separate resolved lookup serial number.'
 Write-Host 'PASS: online status keeps BIOS serial fallback for cloud lookup'

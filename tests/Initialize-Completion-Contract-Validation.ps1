@@ -15,7 +15,7 @@ function Assert-True {
     if(-not $Condition){ throw "FAIL: $Message" }
 }
 
-$path=(Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..\src\WindowsDeviceLink\Public\Initialize-WindowsDeviceLink.ps1')).Path
+$path=(Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..\src\WindowsDeviceLink\Private\Initialize-WindowsDeviceLinkCore.ps1')).Path
 $tokens=$null
 $errors=$null
 $ast=[System.Management.Automation.Language.Parser]::ParseFile($path,[ref]$tokens,[ref]$errors)
@@ -24,7 +24,7 @@ if($errors.Count -gt 0){
     throw "FAIL: Initialize-WindowsDeviceLink parser errors: $detail"
 }
 
-$functionAst=$ast.Find({param($n) $n -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $n.Name -eq 'Initialize-WindowsDeviceLink'},$true)
+$functionAst=$ast.Find({param($n) $n -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $n.Name -eq 'Initialize-WindowsDeviceLinkCore'},$true)
 Assert-True ($null -ne $functionAst) 'Initialize-WindowsDeviceLink function was not found.'
 
 $parameterNames=@($functionAst.Body.ParamBlock.Parameters | ForEach-Object { $_.Name.VariablePath.UserPath })

@@ -27,35 +27,29 @@ Initialize-WindowsDeviceLink
 
 `Get-WindowsDeviceLink -Online` has been removed. This is an intentional breaking preview change: local identity retrieval no longer changes meaning when a switch is supplied.
 
-## Authentication methods
+## Authentication routes (0.11.0)
 
-The cloud cmdlets accept an explicit authentication `-Method` where authentication is required.
+Both UI and CLI support the same decision:
 
-| Method | Best fit | Credentials on device | Required input |
-|---|---|---:|---|
-| `DeviceCode` | Interactive admin/test workflow | No persistent secret | Optional `TenantId`, optional `ClientId` |
-| `Interactive` | Interactive Graph SDK workflow | No persistent secret | Optional `TenantId`, optional `ClientId` |
-| `ClientSecret` | Unattended direct Graph call | Yes | `TenantId`, `ClientId`, `ClientSecret` |
-| `AccessToken` | Caller already has a Graph token | Token in memory | `AccessToken`; optional `TenantId` |
-| `Certificate` | Unattended Graph SDK call | Certificate/private key | `TenantId`, `ClientId`, `Certificate` |
-| `CertificateThumbprint` | Certificate already installed locally | Certificate/private key | `TenantId`, `ClientId`, `CertificateThumbprint` |
-| `CertificateSubjectName` | Certificate already installed locally | Certificate/private key | `TenantId`, `ClientId`, `CertificateSubjectName` |
-| `EnvironmentVariable` | Existing client-credential automation | Yes | `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET` |
-| `ManagedIdentity` | Azure-hosted execution with an identity | No | Optional `ClientId` |
-| `Webhook` | Registration through the Azure Function backend | No Graph credential | `WebhookUri`; optional `WebhookApiKey`, `TenantId` |
+| Route | Intended use | Authentication |
+|---|---|---|
+| Direct | Operator present on the target device | Interactive/WAM on Windows, or DeviceCode subject to tenant policy |
+| Backend | Operator or unattended provisioning on the target device | Backend API key supplied at runtime |
 
-`Webhook` applies to `Register-WindowsDeviceLink`. Association lookup/removal and online diagnostics are direct tenant-side Graph operations. `Initialize-WindowsDeviceLink` intentionally excludes Webhook because it must read and verify tenant-side state as part of its idempotent workflow.
+Direct cmdlets accept `-Method Interactive` or `-Method DeviceCode`. The low-level
+`Register-WindowsDeviceLink -Method Webhook` remains an API transport, not an additional
+Direct authentication method. Prefer the Backend workflow for verified assignment.
+
+Direct app-only credentials and caller-supplied access tokens are no longer accepted.
+See [security guidance](AUTHENTICATION-SECURITY.md).
 
 ## Tenant selection
 
-For delegated authentication (`Interactive` and `DeviceCode`) and caller-supplied `AccessToken` authentication, `-TenantId` is optional.
-
-When delegated authentication is used without `-TenantId`, the sign-in context determines the tenant. Native `DeviceCode` uses the Microsoft identity platform `organizations` authority. For `DeviceCode` and `AccessToken`, WindowsDeviceLink resolves the token `tid` claim on a best-effort basis for result metadata and tenant-side correlation.
-
-Specify `-TenantId` when you intentionally need to target a particular tenant, especially in multitenant or guest-account scenarios. App-only client-credential and certificate authentication remain tenant-specific because their token authority must identify the target tenant.
-
-WindowsDeviceLink does not prescribe one delegated authentication method. Use the method compatible with the runtime and the tenant's access policies.
-
+`-TenantId` is optional for Direct operator authentication. Without it, the sign-in
+context determines the tenant. Specify it to intentionally target a tenant. Operators
+must authenticate in each target tenant; a tenant catalog does not grant permission.
+Native DeviceCode uses the `organizations` authority by default and reads token tenant
+metadata for result correlation.
 
 ## DeviceCode client ID
 
@@ -168,3 +162,16 @@ Get-WindowsDeviceLink | Register-WindowsDeviceLink
 ## Parameter validation
 
 WindowsDeviceLink rejects missing required method inputs and parameters that do not belong to the selected authentication method. `Get-WindowsDeviceLinkAssociation` also requires exactly one of `-SerialNumber` or `-AssociationId`.
+
+## Backend CLI status
+
+```powershell
+# $apiKey is a SecureString supplied by protected runtime configuration.
+Get-WindowsDeviceLinkStatus `
+    -BackendUri 'https://backend.example.com/api/devicelink' `
+    -BackendApiKey $apiKey
+```
+
+Backend parameters select the API route; do not combine them with `-Online` or
+`-Method`. Without Backend parameters, `-Online -Method Interactive` or
+`-Online -Method DeviceCode` selects Direct cloud lookup.

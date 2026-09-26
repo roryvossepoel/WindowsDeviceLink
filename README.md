@@ -31,7 +31,7 @@ WindowsDeviceLink can:
 
 ## Current version
 
-The current development release line is `0.10.1-preview1`.
+The current development release line is `0.11.0-preview1` (not yet released).
 
 WindowsDeviceLink has two explicit execution routes:
 
@@ -40,13 +40,13 @@ WindowsDeviceLink has two explicit execution routes:
 - **Backend mode** uses the optional Function App for complete multitenant lookup and
   guarded New, no-op, or Move orchestration.
 
-Direct mode includes account-based, fixed-tenant, delegated-catalog, and
-application-catalog configurations. These configurations do not all have the same
-automation characteristics: delegated authentication requires a user, while app-only
-and Backend CLI workflows can run unattended. See the
-[tenant assignment mode decision guide](docs/TENANT-ASSIGNMENT-MODES.md) before choosing
-an authentication and deployment model. Backend is recommended for structural
-multitenant use.
+Direct mode requires operator sign-in using Interactive/WAM or DeviceCode. Backend
+mode supports operators and unattended execution; both UI and CLI can use either route.
+See the [tenant assignment guide](docs/TENANT-ASSIGNMENT-MODES.md) and
+[API deployment security recommendations](docs/AUTHENTICATION-SECURITY.md).
+Graph credentials stay in the backend. API keys must be supplied at runtime, not embedded
+in WinPE images. Network restrictions on the API and credential distribution endpoints
+are recommended; organizations own their hardening and rotation arrangements.
 
 The GUI uses one operator view: Device, Connection, Local association, and Cloud
 association are shown together. The dedicated **Target tenant** action row keeps tenant
@@ -355,7 +355,7 @@ It provides:
 - safe New / Update / Move reconciliation;
 - backend-side Graph authentication and verification.
 
-For `0.10.1-preview1`, the supported preview route is to configure the Azure resources
+For this preview, the supported deployment route is to configure the Azure resources
 and deploy the supplied Function App package manually. The repository also contains
 experimental Bicep/ARM infrastructure code, but that route is not yet presented as a
 supported Deploy to Azure experience. Its hardening and end-to-end validation are
@@ -389,7 +389,7 @@ See:
 | Command | Purpose |
 |---|---|
 | `Complete-WindowsDeviceLinkAssociation` | Guardedly complete a preassociated DeviceLink on the local device and verify the resulting firmware/JWT state. |
-| `Connect-WindowsDeviceLink` | Advanced Microsoft Graph SDK authentication helper. |
+| `Connect-WindowsDeviceLink` | Delegated Microsoft Graph sign-in (Interactive or DeviceCode). |
 | `Export-WindowsDeviceLinkCsv` | Export an existing DeviceLink object using the Windows CSV API. |
 | `Get-WindowsDeviceLink` | Obtain the local DeviceLink identity; optionally export it. |
 | `Get-WindowsDeviceLinkAssociation` | Query a tenant-side Intune Device Association by serial number or association ID. |

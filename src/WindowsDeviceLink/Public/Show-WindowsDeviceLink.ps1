@@ -7,7 +7,7 @@ function Show-WindowsDeviceLink {
     Opens a compact Windows 11 Settings-inspired WinForms dashboard on Windows 11 and supported Windows PE environments.
 
     The GUI focuses on inspecting Device Association state, onboarding, and offboarding.
-    Lifecycle actions delegate to existing WindowsDeviceLink public cmdlets.
+    Lifecycle actions share the same implementations as the WindowsDeviceLink CLI.
 
     Interactive authentication is the default on full Windows. Windows PE defaults to DeviceCode because Interactive browser authentication is unavailable there. Use -Method and the corresponding authentication parameters to select another supported authentication flow.
 
@@ -45,58 +45,31 @@ function Show-WindowsDeviceLink {
     [CmdletBinding()]
     param(
         [ValidateSet(
-            'DeviceCode','Interactive','ClientSecret','AccessToken','Certificate',
-            'CertificateThumbprint','CertificateSubjectName','EnvironmentVariable','ManagedIdentity'
+            'DeviceCode','Interactive'
         )]
         [string]$Method,
-
         [ValidateNotNullOrEmpty()]
         [string]$TenantId,
-
         [hashtable]$Tenants,
-
         [ValidateNotNull()]
         [uri]$TenantsUri,
-
         [ValidateNotNullOrEmpty()]
         [string]$TenantsPath,
-
         [ValidateNotNullOrEmpty()]
         [string]$ClientId,
-
-        [securestring]$AccessToken,
-
-        [System.Security.Cryptography.X509Certificates.X509Certificate2]$Certificate,
-
-        [ValidateNotNullOrEmpty()]
-        [string]$CertificateThumbprint,
-
-        [ValidateNotNullOrEmpty()]
-        [string]$CertificateSubjectName,
-
-        [bool]$SendCertificateChain = $false,
-
-        [securestring]$ClientSecret,
-
         [ValidateNotNullOrEmpty()]
         [string]$Environment = 'Global',
-
         [ValidateRange(1,600)]
         [double]$ClientTimeout = 100,
-
         [ValidateNotNullOrEmpty()]
-        [string]$WindowsManagementServicePath
-
-        ,[ValidateNotNull()]
-        [uri]$BackendUri
-
-        ,[ValidateNotNull()]
-        [securestring]$BackendApiKey
-
-        ,[ValidateSet('Simple','Advanced')]
-        [string]$ViewMode = 'Simple'
-
-        ,[ValidateRange(5,600)]
+        [string]$WindowsManagementServicePath,
+        [ValidateNotNull()]
+        [uri]$BackendUri,
+        [ValidateNotNull()]
+        [securestring]$BackendApiKey,
+        [ValidateSet('Simple','Advanced')]
+        [string]$ViewMode = 'Simple',
+        [ValidateRange(5,600)]
         [int]$TimeoutSeconds = 120
     )
 
@@ -125,7 +98,7 @@ function Show-WindowsDeviceLink {
     }
 
     if ($isWinPE -and $Method -eq 'Interactive') {
-        throw 'Interactive authentication is not available in Windows PE. Use -Method DeviceCode or a supported app-only authentication method.'
+        throw 'Interactive authentication is not available in Windows PE. Use -Method DeviceCode or Backend mode.'
     }
     $usesInteractiveUserAuthentication = -not $backendMode -and $Method -in @('Interactive','DeviceCode')
 
@@ -204,7 +177,6 @@ function Show-WindowsDeviceLink {
             $resolvedFamily,$Size,$Style,[System.Drawing.GraphicsUnit]::Point
         )
     }
-
 
     function New-Card {
         param(
@@ -471,10 +443,7 @@ function Show-WindowsDeviceLink {
             ClientTimeout = $ClientTimeout
         }
 
-        foreach ($name in @(
-            'ClientId','AccessToken','Certificate','CertificateThumbprint',
-            'CertificateSubjectName','SendCertificateChain','ClientSecret'
-        )) {
+        foreach ($name in @('ClientId')) {
             if ($outerBoundParameters.ContainsKey($name)) {
                 $parameters[$name] = $outerBoundParameters[$name]
             }
@@ -520,7 +489,6 @@ function Show-WindowsDeviceLink {
         if (-not $backendMode) { throw 'This action requires -BackendUri and -BackendApiKey.' }
         @{ BackendUri=$BackendUri; BackendApiKey=$BackendApiKey; TimeoutSeconds=$TimeoutSeconds }
     }
-
 
     function Get-GuiRuntimeParameters {
         $parameters = @{}
@@ -1427,7 +1395,7 @@ function Show-WindowsDeviceLink {
             foreach ($key in $runtimeParameters.Keys) { $parameters[$key]=$runtimeParameters[$key] }
             $parameters.Online = $true
             if ($WriteCommand) { Write-GuiConsole -Message "Get-WindowsDeviceLinkStatus -Online -Method $Method" -Command }
-            $cloudResults = @(Invoke-GuiInformationCommand -ScriptBlock { Get-WindowsDeviceLinkStatus @parameters })
+            $cloudResults = @(Invoke-GuiInformationCommand -ScriptBlock { Get-WindowsDeviceLinkStatusCore @parameters })
             $cloud = $cloudResults | Select-Object -Last 1
         }
         $script:WdlGuiCloudStatus = $cloud
@@ -1593,7 +1561,7 @@ function Show-WindowsDeviceLink {
             foreach ($key in $runtimeParameters.Keys) { $parameters[$key]=$runtimeParameters[$key] }
             $commandText = if ($backendMode) { "Set-WindowsDeviceLinkTenant -BackendUri <configured> -TargetTenantId $targetId" } elseif ($targetId) { "Set-WindowsDeviceLinkTenant -Method $Method -TenantId $targetId" } else { "Set-WindowsDeviceLinkTenant -Method $Method" }
             Write-GuiConsole -Message $commandText -Command
-            $results = @(Invoke-GuiInformationCommand -ScriptBlock { Set-WindowsDeviceLinkTenant @parameters })
+            $results = @(Invoke-GuiInformationCommand -ScriptBlock { Set-WindowsDeviceLinkTenantCore @parameters })
             $result = $results | Select-Object -Last 1
             Write-GuiObject $result
             Refresh-LocalView
@@ -1788,7 +1756,7 @@ function Show-WindowsDeviceLink {
 
                 Write-GuiConsole -Message "Set-WindowsDeviceLinkTenant -BackendUri <configured> -TargetTenantId $targetId" -Command
                 $assignmentResults = @(Invoke-GuiInformationCommand -ScriptBlock {
-                    Set-WindowsDeviceLinkTenant @assignmentParameters
+                    Set-WindowsDeviceLinkTenantCore @assignmentParameters
                 })
                 $assignment = $assignmentResults | Select-Object -Last 1
                 Write-GuiObject $assignment
@@ -1809,7 +1777,7 @@ function Show-WindowsDeviceLink {
                 Write-GuiConsole -Message "Initialize-WindowsDeviceLink -Method $Method -Associate" -Command
                 $resultObjects = New-Object System.Collections.Generic.List[object]
                 & {
-                    Initialize-WindowsDeviceLink @parameters
+                    Initialize-WindowsDeviceLinkCore @parameters
                 } 6>&1 | ForEach-Object {
                     if ($_ -is [System.Management.Automation.InformationRecord]) {
                         $message = [string]$_.MessageData
@@ -1870,7 +1838,7 @@ function Show-WindowsDeviceLink {
 
             Write-GuiConsole -Message "Remove-WindowsDeviceLinkAssociation -Method $Method" -Command
             $removalResults = @(Invoke-GuiInformationCommand -ScriptBlock {
-                Remove-WindowsDeviceLinkAssociation @parameters
+                Remove-WindowsDeviceLinkAssociationCore @parameters
             })
             $result = $removalResults | Select-Object -Last 1
             Write-GuiObject $result
@@ -2032,7 +2000,7 @@ function Show-WindowsDeviceLink {
             $displayMethod = [string]$effectiveAuth.Method
             Write-GuiConsole -Message "Get-WindowsDeviceLinkStatus -Online -Method $displayMethod" -Command
             $cloudResults = @(Invoke-GuiInformationCommand -ScriptBlock {
-                Get-WindowsDeviceLinkStatus @statusParameters
+                Get-WindowsDeviceLinkStatusCore @statusParameters
             })
             $cloud = $cloudResults | Select-Object -Last 1
             Write-GuiObject $cloud
@@ -2048,7 +2016,7 @@ function Show-WindowsDeviceLink {
 
                 Write-GuiConsole -Message "Remove-WindowsDeviceLinkAssociation -Method $displayMethod" -Command
                 $removeResults = @(Invoke-GuiInformationCommand -ScriptBlock {
-                    Remove-WindowsDeviceLinkAssociation @removeParameters
+                    Remove-WindowsDeviceLinkAssociationCore @removeParameters
                 })
                 $removed = $removeResults | Select-Object -Last 1
                 Write-GuiObject $removed
@@ -2248,7 +2216,6 @@ function Show-WindowsDeviceLink {
         $activityHeight = [Math]::Max(118,$content.ClientSize.Height - $activityCard.Top - 12)
         $activityCard.Height = $activityHeight
         $consoleBox.Height = [Math]::Max(96,$activityHeight - 22)
-
 
         foreach ($row in @($rowTools,$rowExport,$rowOffboard)) {
             $row.Panel.Width = $fullWidth

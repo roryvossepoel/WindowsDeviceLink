@@ -233,3 +233,10 @@ restrictions, API Management, VNet integration, WAF/reverse proxy controls and S
 forwarding without changing the WindowsDeviceLink request contract.
 
 See [SECURITY-HARDENING.md](SECURITY-HARDENING.md).
+
+## Deployment hardening
+
+Restrict API access to trusted provisioning-network egress IP addresses and deny other
+sources. Supply API keys at runtime, never in WinPE images. Protect any credential
+distribution endpoint too. Key rotation and bootstrap infrastructure remain the
+organization's responsibility. See [security recommendations](AUTHENTICATION-SECURITY.md).

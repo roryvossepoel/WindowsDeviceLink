@@ -81,13 +81,6 @@ Select an authentication method with `-Method`.
 |---|---|
 | `Interactive` | Optional `-TenantId`, optional `-ClientId` |
 | `DeviceCode` | Optional `-TenantId`, optional `-ClientId` |
-| `ClientSecret` | `-TenantId`, `-ClientId`, `-ClientSecret` |
-| `AccessToken` | `-AccessToken`; `-TenantId` can be supplied when needed |
-| `Certificate` | `-TenantId`, `-ClientId`, `-Certificate`; optional `-SendCertificateChain` |
-| `CertificateThumbprint` | `-TenantId`, `-ClientId`, `-CertificateThumbprint`; optional `-SendCertificateChain` |
-| `CertificateSubjectName` | `-TenantId`, `-ClientId`, `-CertificateSubjectName`; optional `-SendCertificateChain` |
-| `EnvironmentVariable` | Uses the documented Azure/Entra environment variables |
-| `ManagedIdentity` | Optional `-ClientId` for a user-assigned identity |
 
 Examples:
 
@@ -102,16 +95,13 @@ Show-WindowsDeviceLink `
 ```
 
 ```powershell
-$secret = Read-Host 'Client secret' -AsSecureString
-
-Show-WindowsDeviceLink `
-    -Method ClientSecret `
-    -TenantId '<tenant-id>' `
-    -ClientId '<client-id>' `
-    -ClientSecret $secret
+$apiKey = Read-Host 'Backend API key' -AsSecureString
+Show-WindowsDeviceLink -BackendUri 'https://backend.example.com/api/devicelink' -BackendApiKey $apiKey
 ```
 
-The GUI uses the existing WindowsDeviceLink authentication helpers and public cmdlets.
+For unattended operation use Backend mode. See the [hardening recommendations](AUTHENTICATION-SECURITY.md).
+
+The GUI uses the existing WindowsDeviceLink authentication helpers and shared lifecycle implementations.
 It adds only session-scoped orchestration so an operator does not need to repeat the
 same DeviceCode sign-in for every action.
 

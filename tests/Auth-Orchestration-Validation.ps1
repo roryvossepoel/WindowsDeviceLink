@@ -10,7 +10,7 @@ if(-not $ModulePath){$ModulePath=Join-Path $PSScriptRoot '..\src\WindowsDeviceLi
 Remove-Module WindowsDeviceLink -Force -ErrorAction SilentlyContinue
 Import-Module (Resolve-Path -LiteralPath $ModulePath).Path -Force -ErrorAction Stop
 
-$initialize=(Get-Command Initialize-WindowsDeviceLink -Module WindowsDeviceLink).ScriptBlock.ToString()
+$initialize=(& (Get-Module WindowsDeviceLink) { (Get-Command Initialize-WindowsDeviceLinkCore).ScriptBlock.ToString() })
 $connect=(Get-Command Connect-WindowsDeviceLink -Module WindowsDeviceLink).ScriptBlock.ToString()
 
 $tokenAcquisitionCount=([regex]::Matches($initialize,'Get-WindowsDeviceLinkDeviceCodeToken')).Count
@@ -28,14 +28,8 @@ Assert-True ($initialize -match 'Resolve-WindowsDeviceLinkBackendEndpoint') 'Fun
 Assert-True ($initialize -match 'AssociationInDifferentTenant') 'Function-backed initialization must explicitly block target-tenant mismatch.'
 Write-Host 'PASS: DeviceCode initializer structural contract enforces single acquisition and shared AccessToken reuse'
 
-Assert-True ($connect -match 'CertificateThumbprint') 'CertificateThumbprint parameter path is missing.'
-Assert-True ($connect -match 'CertificateSubjectName') 'CertificateSubjectName parameter path is missing.'
-Assert-True ($connect -match 'ClientSecretCredential') 'ClientSecret is not wrapped as ClientSecretCredential for SDK authentication.'
-Assert-True ($connect -match 'System\.Management\.Automation\.PSCredential') 'ClientSecret credential wrapping is missing.'
-Assert-True ($connect -match 'Identity\s*=\s*\$true') 'ManagedIdentity path does not set Identity.'
-Assert-True ($connect -match 'Invoke-WindowsDeviceLinkGraphConnect') 'Connect-WindowsDeviceLink is not routed through the hardened SDK connection helper.'
-Assert-True ($connect -notmatch '\$parameters\.ClientSecret\s*=') 'Plain ClientSecret is assigned directly into Connect-MgGraph parameters.'
-Write-Host 'PASS: SDK authentication routing uses explicit safe parameter shapes'
+Assert-True ($connect -match 'Invoke-WindowsDeviceLinkGraphConnect') 'Delegated login must use the hardened SDK connection helper.'
+Assert-True ($connect -match 'Assert-WindowsDeviceLinkDelegatedContext') 'SDK login must verify a delegated session.'
 
 Write-Host ''
 Write-Host 'Authentication orchestration contract regression set passed.'

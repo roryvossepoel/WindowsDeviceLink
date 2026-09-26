@@ -128,8 +128,8 @@ Write-Host 'PASS: unknown future association state fails conservatively'
 # Static integration invariants ensure the tested pure resolvers remain wired into the
 # public cmdlets rather than becoming unused helper code.
 $moduleRoot = Split-Path -Parent $resolvedModulePath
-$statusSource = Get-Content -LiteralPath (Join-Path $moduleRoot 'Public\Get-WindowsDeviceLinkStatus.ps1') -Raw
-$initializerSource = Get-Content -LiteralPath (Join-Path $moduleRoot 'Public\Initialize-WindowsDeviceLink.ps1') -Raw
+$statusSource = Get-Content -LiteralPath (Join-Path $moduleRoot 'Private\Get-WindowsDeviceLinkStatusCore.ps1') -Raw
+$initializerSource = Get-Content -LiteralPath (Join-Path $moduleRoot 'Private\Initialize-WindowsDeviceLinkCore.ps1') -Raw
 Assert-True ($statusSource -match 'Resolve-WindowsDeviceLinkCloudState') 'Get-WindowsDeviceLinkStatus is not using the tested cloud-state resolver.'
 Assert-True ($initializerSource -match 'Resolve-WindowsDeviceLinkInitializationAction') 'Initialize-WindowsDeviceLink is not using the tested action resolver.'
 Write-Host 'PASS: fail-safe resolvers are wired into public status and initialization cmdlets'

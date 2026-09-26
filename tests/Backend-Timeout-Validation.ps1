@@ -34,7 +34,7 @@ $catalogSource = & $module { (Get-Command Invoke-WindowsDeviceLinkBackendTenantC
 $reconcileSource = & $module { (Get-Command Invoke-WindowsDeviceLinkBackendReconcile).ScriptBlock.ToString() }
 $offboardSource = & $module { (Get-Command Invoke-WindowsDeviceLinkBackendOffboard).ScriptBlock.ToString() }
 $statusSource = & $module { (Get-Command Get-WindowsDeviceLinkBackendStatus).ScriptBlock.ToString() }
-$assignmentSource = (Get-Command Set-WindowsDeviceLinkTenant -Module WindowsDeviceLink).ScriptBlock.ToString()
+$assignmentSource = (& (Get-Module WindowsDeviceLink) { (Get-Command Set-WindowsDeviceLinkTenantCore).ScriptBlock.ToString() })
 $guiSource = (Get-Command Show-WindowsDeviceLink -Module WindowsDeviceLink).ScriptBlock.ToString()
 
 foreach ($contract in @(

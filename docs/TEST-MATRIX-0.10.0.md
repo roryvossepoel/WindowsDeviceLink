@@ -1,5 +1,7 @@
 # WindowsDeviceLink 0.10.0 test matrix
 
+> Historical 0.10 test plan. For the current preview routes, see [TESTING.md](../TESTING.md).
+
 This matrix records both the focused release gate for `0.10.0-preview1` and the
 broader validation work planned after that preview. It separates automated contract
 coverage from live validation on Windows 11, Windows PE, Microsoft Graph, and the

@@ -1,22 +1,21 @@
 function Get-WindowsDeviceLinkTenantCatalog {
     <#
     .SYNOPSIS
-    Reads a backend-independent friendly-name-to-tenant-ID catalog.
+    Reads tenant names, IDs and effective client IDs from one Direct configuration.
     .DESCRIPTION
-    Reads tenant choices from a local JSON file, trusted HTTPS endpoint, or hashtable.
-    The catalog contains no credentials and performs no Graph or Function App calls.
-    Use -Name or -TenantId to resolve one explicit tenant for direct Graph cmdlets.
+    Configuration accepts a local JSON file, a trusted HTTPS URL, or inline JSON.
+    The same schema is validated for every source. Tenant clientId overrides the shared
+    clientId; when both are omitted, the authentication method's standard client is used.
+    This command reads data only and does not authenticate. Use Name or TenantId to
+    select exactly one entry for a CLI operation.
     .EXAMPLE
-    Get-WindowsDeviceLinkTenantCatalog -Path 'E:\Config\tenants.json'
+    Get-WindowsDeviceLinkTenantCatalog -Configuration 'E:\Config\devicelink.json'
     .EXAMPLE
-    $tenant = Get-WindowsDeviceLinkTenantCatalog -Path 'E:\Config\tenants.json' -Name 'Tenant Alpha'
-    Get-WindowsDeviceLink | Register-WindowsDeviceLink -Method DeviceCode -TenantId $tenant.TenantId
+    Get-WindowsDeviceLinkTenantCatalog -Configuration 'E:\Config\devicelink.json' -Name 'Tenant Alpha'
     #>
-    [CmdletBinding(DefaultParameterSetName='Path')]
+    [CmdletBinding()]
     param(
-        [Parameter(Mandatory,ParameterSetName='Path')][ValidateNotNullOrEmpty()][string]$Path,
-        [Parameter(Mandatory,ParameterSetName='Uri')][ValidateNotNull()][uri]$Uri,
-        [Parameter(Mandatory,ParameterSetName='Map')][ValidateNotNull()][hashtable]$TenantMap,
+        [Parameter(Mandatory)][ValidateNotNullOrEmpty()][string]$Configuration,
         [ValidateNotNullOrEmpty()][string]$Name,
         [guid]$TenantId
     )
@@ -24,41 +23,15 @@ function Get-WindowsDeviceLinkTenantCatalog {
     if ($PSBoundParameters.ContainsKey('Name') -and $PSBoundParameters.ContainsKey('TenantId')) {
         throw '-Name and -TenantId cannot be combined.'
     }
-
-    switch ($PSCmdlet.ParameterSetName) {
-        'Path' {
-            if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) { throw "Tenant catalog '$Path' was not found." }
-            try {
-                $resolvedPath = (Resolve-Path -LiteralPath $Path -ErrorAction Stop).Path
-                $input = Get-Content -LiteralPath $resolvedPath -Raw -ErrorAction Stop | ConvertFrom-Json -ErrorAction Stop
-            }
-            catch { throw "Unable to load tenant catalog '$Path': $($_.Exception.Message)" }
-            $source = $resolvedPath
-        }
-        'Uri' {
-            if (-not $Uri.IsAbsoluteUri -or $Uri.Scheme -ne 'https') { throw '-Uri must be an absolute HTTPS URI.' }
-            try { $input = Invoke-RestMethod -Method Get -Uri $Uri.AbsoluteUri -TimeoutSec 15 -ErrorAction Stop }
-            catch { throw "Unable to load tenant catalog '$($Uri.AbsoluteUri)': $($_.Exception.Message)" }
-            $source = $Uri.AbsoluteUri
-        }
-        'Map' {
-            $input = $TenantMap
-            $source = 'TenantMap'
-        }
-    }
-
-    $entries = @(ConvertTo-WindowsDeviceLinkTenantCatalog -InputObject $input -Source $source)
+    $entries = @(Read-WindowsDeviceLinkConfiguration -Configuration $Configuration)
     if ($PSBoundParameters.ContainsKey('Name')) {
         $entries = @($entries | Where-Object { $_.Name -ieq $Name.Trim() })
     }
     elseif ($PSBoundParameters.ContainsKey('TenantId')) {
-        $id = $TenantId.ToString().ToLowerInvariant()
-        $entries = @($entries | Where-Object { $_.TenantId -eq $id })
+        $entries = @($entries | Where-Object { $_.TenantId -eq $TenantId.ToString() })
     }
-
     if (($PSBoundParameters.ContainsKey('Name') -or $PSBoundParameters.ContainsKey('TenantId')) -and $entries.Count -ne 1) {
-        $selector = if ($PSBoundParameters.ContainsKey('Name')) { "name '$Name'" } else { "tenant ID '$TenantId'" }
-        throw "The tenant catalog resolved $selector to $($entries.Count) entries; exactly one is required."
+        throw 'The configuration must resolve the requested tenant to exactly one entry.'
     }
     $entries
 }

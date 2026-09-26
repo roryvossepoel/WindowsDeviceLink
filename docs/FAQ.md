@@ -17,7 +17,7 @@ The GUI provides:
 
 - local DeviceLink and firmware state;
 - optional tenant-side cloud state;
-- tenant selection by friendly name when `-Tenants` is supplied;
+- fixed tenant names or a tenant selector when `-Configuration` is supplied;
 - CSV export;
 - pre-association and association;
 - cloud-only, local-only and full DeviceLink offboarding;
@@ -29,51 +29,18 @@ Interactive authentication is the default. For example:
 Show-WindowsDeviceLink -Method DeviceCode
 ```
 
-Provide friendly tenant choices directly:
+Use one configuration parameter for a local file, HTTPS URL, or inline JSON:
 
 ```powershell
-Show-WindowsDeviceLink -Tenants @{
-    'Tenant Alpha' = '11111111-1111-1111-1111-111111111111'
-    'Tenant Beta' = '22222222-2222-2222-2222-222222222222'
-}
+Show-WindowsDeviceLink -Configuration 'E:\Config\devicelink.json'
+Show-WindowsDeviceLink -Configuration 'https://config.example.com/devicelink.json'
+Show-WindowsDeviceLink -Configuration $config
 ```
 
-Or load the selector from a centrally maintained HTTPS JSON file:
-
-```powershell
-Show-WindowsDeviceLink `
-    -TenantsUri 'https://config.example.com/windowsdevicelink/tenants.json'
-```
-
-Or from a local JSON file:
-
-```powershell
-Show-WindowsDeviceLink `
-    -TenantsPath 'E:\Config\tenants.json'
-```
-
-The JSON format is intentionally simple:
-
-```json
-{
-  "Tenant Alpha": "11111111-1111-1111-1111-111111111111",
-  "Tenant Beta": "22222222-2222-2222-2222-222222222222"
-}
-```
-
-`-TenantsUri` accepts only an absolute HTTPS URI. `-TenantsPath` reads the same JSON schema from a local file. Tenant values must be valid GUIDs. The file should contain tenant display names and tenant IDs only; do not place credentials or secrets in it. When multiple sources are supplied, precedence is `TenantsUri` -> `TenantsPath` -> explicit `-Tenants`.
-
-The Function App is not required for this selector. Resolve the same catalog in CLI
-scripts with:
-
-```powershell
-$tenant = Get-WindowsDeviceLinkTenantCatalog `
-    -Path 'E:\Config\tenants.json' `
-    -Name 'Tenant Beta'
-```
-
-Then pass `$tenant.TenantId` to the desired direct Graph command. This does not provide
-cross-tenant lookup or Move orchestration.
+One tenant shows its fixed name; multiple tenants show a selector. Optional shared or
+tenant-specific client IDs select the public client application for operator sign-in.
+See [configuration examples](CONFIGURATION.md) for the JSON schema and CLI usage.
+No extra Graph permissions are needed to display the configured tenant names.
 
 The GUI delegates operations to the existing WindowsDeviceLink cmdlets and is available on Windows 11 and compatible Windows PE environments.
 

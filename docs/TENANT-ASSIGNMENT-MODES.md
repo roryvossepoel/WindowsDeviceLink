@@ -83,22 +83,22 @@ Show-WindowsDeviceLink -TenantId '<tenant-id>'
 The GUI shows no tenant selector. The operator cannot redirect the workflow to another
 tenant. This is useful for customer-specific WinPE media, scripts, or support workflows.
 
-An explicit `TenantId` cannot be combined with a local tenant catalog because that would
-create two competing sources for the target tenant.
+For a fixed friendly name, supply a configuration with one tenant instead.
+Configuration cannot be combined with explicit TenantId or ClientId parameters.
+See [the configuration schema](CONFIGURATION.md).
 
 ## Delegated catalog Direct mode
 
-Supply a friendly tenant catalog and use `Interactive` or `DeviceCode` authentication:
+Supply a configuration with multiple tenants and use `Interactive` or `DeviceCode` authentication:
 
 ```powershell
 Show-WindowsDeviceLink `
     -Method DeviceCode `
-    -ClientId '<multitenant-app-client-id>' `
-    -TenantsPath 'E:\Config\tenants.json'
+    -Configuration 'E:\Config\devicelink.json'
 ```
 
 The operator must select a tenant before signing in. The selected tenant becomes the
-authentication authority. A multitenant app registration can use the same Client ID in
+authentication authority. A shared configuration clientId can identify a multitenant app registration in
 every tenant where its service principal exists and delegated consent has been granted.
 The signed-in user must also have sufficient rights in the selected tenant.
 

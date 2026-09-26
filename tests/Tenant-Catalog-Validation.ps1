@@ -9,36 +9,23 @@ Import-Module (Resolve-Path $ModulePath) -Force
 
 $tenantA = '11111111-1111-1111-1111-111111111111'
 $tenantB = '22222222-2222-2222-2222-222222222222'
-$map = @{ 'Tenant B'=$tenantB; 'Tenant A'=$tenantA }
-
-$all = @(Get-WindowsDeviceLinkTenantCatalog -TenantMap $map)
-Assert-True ($all.Count -eq 2 -and $all[0].Name -eq 'Tenant A' -and $all[1].TenantId -eq $tenantB) 'Hashtable catalog was not normalized and sorted.'
-
-$selected = Get-WindowsDeviceLinkTenantCatalog -TenantMap $map -Name 'tenant b'
+$configuration = @{
+    schemaVersion=1; mode='Direct'; tenants=@(
+        @{name='Tenant B';tenantId=$tenantB}, @{name='Tenant A';tenantId=$tenantA}
+    )
+} | ConvertTo-Json -Depth 5
+$all = @(Get-WindowsDeviceLinkTenantCatalog -Configuration $configuration)
+Assert-True ($all.Count -eq 2 -and $all[0].Name -eq 'Tenant A' -and $all[1].TenantId -eq $tenantB) 'Configuration was not normalized and sorted.'
+$selected = Get-WindowsDeviceLinkTenantCatalog -Configuration $configuration -Name 'tenant b'
 Assert-True ($selected.TenantId -eq $tenantB) 'Case-insensitive name selection failed.'
-
-$selectedById = Get-WindowsDeviceLinkTenantCatalog -TenantMap $map -TenantId $tenantA
+$selectedById = Get-WindowsDeviceLinkTenantCatalog -Configuration $configuration -TenantId $tenantA
 Assert-True ($selectedById.Name -eq 'Tenant A') 'Tenant ID selection failed.'
-
-$tempPath = Join-Path ([IO.Path]::GetTempPath()) ('wdl-tenants-' + [guid]::NewGuid().ToString() + '.json')
-try {
-    '{"Tenant A":"11111111-1111-1111-1111-111111111111","Tenant B":"22222222-2222-2222-2222-222222222222"}' | Set-Content -LiteralPath $tempPath -Encoding UTF8
-    $fromFile = @(Get-WindowsDeviceLinkTenantCatalog -Path $tempPath)
-    Assert-True ($fromFile.Count -eq 2) 'Local JSON catalog did not load.'
-}
-finally { Remove-Item -LiteralPath $tempPath -Force -ErrorAction SilentlyContinue }
-
 $blocked = $false
-try { $null = Get-WindowsDeviceLinkTenantCatalog -TenantMap @{ A=$tenantA; Alias=$tenantA } } catch { $blocked=$true }
-Assert-True $blocked 'Duplicate tenant IDs must fail closed.'
-
-$blocked = $false
-try { $null = Get-WindowsDeviceLinkTenantCatalog -TenantMap $map -Name 'Missing' } catch { $blocked=$true }
+try { $null = Get-WindowsDeviceLinkTenantCatalog -Configuration $configuration -Name 'Missing' } catch { $blocked=$true }
 Assert-True $blocked 'A missing selected name must fail closed.'
-
 $command = Get-Command Get-WindowsDeviceLinkTenantCatalog -Module WindowsDeviceLink
 Assert-True (-not $command.Parameters.ContainsKey('WhatIf')) 'Tenant catalog reading must remain read-only.'
-Write-Host 'PASS: backend-independent tenant catalog supports hashtable, local JSON, name/ID selection, and fail-closed validation.'
+Write-Host 'PASS: configuration catalog supports name/ID selection.'
 
 $backendResponse = [pscustomobject]@{
     success=$true; apiVersion='1.0'; minimumModuleVersion='0.10.0'

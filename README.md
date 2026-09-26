@@ -94,29 +94,20 @@ Set-WindowsDeviceLinkTenant `
     -TargetTenantId '<tenant-id>'
 ```
 
-Function App usage is optional. For controlled environments that only need an
-operator-selectable tenant list, the same friendly-name JSON can be used directly by
-the UI and CLI:
-
-```json
-{
-  "Tenant Alpha": "11111111-1111-1111-1111-111111111111",
-  "Tenant Beta": "22222222-2222-2222-2222-222222222222"
-}
-```
+Function App usage is optional. Direct mode accepts one configuration for a fixed named
+tenant or a tenant selector, with optional shared or tenant-specific client IDs:
 
 ```powershell
-$tenant = Get-WindowsDeviceLinkTenantCatalog `
-    -Path 'E:\Config\tenants.json' `
-    -Name 'Tenant Alpha'
-
-Get-WindowsDeviceLink |
-    Register-WindowsDeviceLink `
-        -Method DeviceCode `
-        -TenantId $tenant.TenantId
+Show-WindowsDeviceLink -Configuration 'E:\Config\devicelink.json'
+Show-WindowsDeviceLink -Configuration 'https://config.example.com/devicelink.json'
+# $config can also contain inline JSON text.
+Show-WindowsDeviceLink -Configuration $config
 ```
 
-This Direct-mode catalog selects a tenant but does not search or move records across tenants.
+The same configuration is available to CLI scripts through
+`Get-WindowsDeviceLinkTenantCatalog -Configuration ...`. See the
+[JSON schema and examples](docs/CONFIGURATION.md). Direct configuration selects the
+operator's target tenant; it does not search or move records across tenants.
 
 ## Mental model
 
@@ -399,7 +390,7 @@ See:
 | `Get-WindowsDeviceLinkStatus` | Combine runtime, local identity, firmware and optional tenant-side association diagnostics. |
 | `Initialize-WindowsDeviceLink` | Safely initialize pre-association and optionally complete association with explicit `-Associate`. |
 | `Get-WindowsDeviceLinkBackendTenant` | Read the authenticated Function backend tenant catalog. |
-| `Get-WindowsDeviceLinkTenantCatalog` | Read and resolve a local, HTTPS, or in-memory tenant-name catalog without a Function App. |
+| `Get-WindowsDeviceLinkTenantCatalog` | Read tenant names and effective client IDs from a file, HTTPS URL or inline JSON configuration. |
 | `Set-WindowsDeviceLinkTenant` | Apply New/no-op in Direct mode, or New/no-op/verified Move in Backend mode. |
 | `Register-WindowsDeviceLink` | Explicitly create a tenant-side pre-association directly or through a webhook. |
 | `Remove-WindowsDeviceLinkAssociation` | Remove a tenant-side Device Association record. |

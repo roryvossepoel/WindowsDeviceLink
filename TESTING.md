@@ -162,7 +162,7 @@ Validated GUI behavior includes:
 - module version and Preview status in the window title;
 - Windows 11 environment display;
 - local firmware / tenant-correlation display;
-- tenant selector with friendly names supplied through `-Tenants`;
+- tenant selector with friendly names (the new Configuration schema still needs live UI validation);
 - default `Interactive` authentication and alternate `-Method` contract;
 - online cloud-state refresh;
 - CSV export;
@@ -364,3 +364,13 @@ preview backend delivery route; the Bicep/ARM Deploy to Azure path remains exper
 - Harden and validate the experimental Bicep/ARM Deploy to Azure route tracked in issue #43.
 - Additional Windows 11 / WinPE builds and OEMs/models.
 - Non-Global Microsoft clouds.
+
+## Configuration validation (0.11 preview)
+
+Offline checks cover JSON file/HTTPS/inline loading, strict schema validation, duplicate
+names and IDs, clientId precedence, conflicting parameters, single-tenant fixed labels,
+multitenant selection and client routing for Interactive/DeviceCode.
+
+Live UI checks before release: fixed tenant name before/after sign-in and sign-out;
+switch tenants after sign-out; verify the shared/overridden client app and authenticated
+tenant; repeat DeviceCode in WinPE. Backend catalog behavior must remain unchanged.

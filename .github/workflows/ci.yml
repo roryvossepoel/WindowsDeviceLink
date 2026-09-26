@@ -104,6 +104,12 @@ jobs:
           $ErrorActionPreference = 'Stop'
           .\tests\Tenant-Assignment-Validation.ps1 -ModulePath $env:WDL_MODULE_PATH
 
+      - name: Validate unified Direct configuration
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          .\tests\Configuration-Validation.ps1 -ModulePath $env:WDL_MODULE_PATH
+
       - name: Validate backend-independent tenant catalog
         shell: powershell
         run: |

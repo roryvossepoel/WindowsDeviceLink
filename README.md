@@ -104,8 +104,7 @@ Show-WindowsDeviceLink -Configuration 'https://config.example.com/devicelink.jso
 Show-WindowsDeviceLink -Configuration $config
 ```
 
-The same configuration is available to CLI scripts through
-`Get-WindowsDeviceLinkTenantCatalog -Configuration ...`. See the
+The configuration is consumed internally by `Show-WindowsDeviceLink`. See the
 [JSON schema and examples](docs/CONFIGURATION.md). Direct configuration selects the
 operator's target tenant; it does not search or move records across tenants.
 
@@ -339,6 +338,11 @@ See [WINPE-WORKFLOW.md](docs/WINPE-WORKFLOW.md).
 
 WindowsDeviceLink includes an optional Azure Function backend for centralized/multitenant Device Association operations.
 
+Its single non-secret backend JSON maps allowed tenants to certificate or client-secret
+authentication profiles. Multiple tenants can share one multitenant application, while
+separate tenant applications remain possible. Credentials stay in Key Vault-backed
+Function App settings. See [Backend configuration](docs/BACKEND-CONFIGURATION.md).
+
 It provides:
 
 - fast multitenant lookup;
@@ -390,7 +394,6 @@ See:
 | `Get-WindowsDeviceLinkStatus` | Combine runtime, local identity, firmware and optional tenant-side association diagnostics. |
 | `Initialize-WindowsDeviceLink` | Safely initialize pre-association and optionally complete association with explicit `-Associate`. |
 | `Get-WindowsDeviceLinkBackendTenant` | Read the authenticated Function backend tenant catalog. |
-| `Get-WindowsDeviceLinkTenantCatalog` | Read tenant names and effective client IDs from a file, HTTPS URL or inline JSON configuration. |
 | `Set-WindowsDeviceLinkTenant` | Apply New/no-op in Direct mode, or New/no-op/verified Move in Backend mode. |
 | `Register-WindowsDeviceLink` | Explicitly create a tenant-side pre-association directly or through a webhook. |
 | `Remove-WindowsDeviceLinkAssociation` | Remove a tenant-side Device Association record. |
@@ -412,6 +415,7 @@ See:
 - [WINPE-WORKFLOW.md](docs/WINPE-WORKFLOW.md) — supported WinPE workflow and native completion boundary.
 - [ONLINE-METHODS.md](docs/ONLINE-METHODS.md) — cloud operations and authentication methods.
 - [AZURE-BACKEND.md](docs/AZURE-BACKEND.md) — Azure Function backend architecture and deployment.
+- [BACKEND-CONFIGURATION.md](docs/BACKEND-CONFIGURATION.md) — tenant and authentication-profile schema.
 - [APP-REGISTRATION.md](docs/APP-REGISTRATION.md) — multitenant Entra App Registration and Graph permission.
 - [MULTITENANT-CONSENT.md](docs/MULTITENANT-CONSENT.md) — onboarding target tenants with explicit admin consent.
 - [MULTITENANT-LOOKUP.md](docs/MULTITENANT-LOOKUP.md) — search managed tenants by serial number.

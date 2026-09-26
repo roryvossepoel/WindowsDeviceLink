@@ -81,7 +81,7 @@ foreach ($required in @(
     'Configuration',
     'Get-SelectedClientId',
     'fixedConfigurationTenantId',
-    'Get-WindowsDeviceLinkTenantCatalog',
+    'Read-WindowsDeviceLinkConfiguration',
     'WindowsManagementServicePath',
     'Windows PE',
     'Association is not available in Windows PE',

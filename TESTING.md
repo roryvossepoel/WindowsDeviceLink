@@ -148,6 +148,12 @@ The parameter regression suite passed, including validation that:
 
 The 0.11 Direct surface supports Interactive and DeviceCode only. Backend and low-level Webhook use API authentication. App-only and public AccessToken routes are rejected; internal delegated token reuse remains covered by regression tests.
 
+Backend configuration regression tests cover a shared multitenant application profile,
+separate certificate/client-secret profiles, tenant-specific token acquisition, and a
+Move whose source and target use different profiles. Live validation is required only
+for the shared multitenant application route; isolated per-tenant applications are
+validated with mocked identity and Graph transports.
+
 
 
 ## Operator GUI validation

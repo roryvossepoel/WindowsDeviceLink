@@ -24,6 +24,9 @@ jobs:
       - name: Validate backend runtime with mocked HTTP
         shell: pwsh
         run: ./tests/Azure-Backend-Runtime-Validation.ps1
+      - name: Validate backend tenant and authentication-profile configuration
+        shell: pwsh
+        run: ./tests/Backend-Configuration-Validation.ps1
 
   regression:
     name: Windows PowerShell 5.1 regression
@@ -199,6 +202,18 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           .\tests\Azure-Backend-Contract-Validation.ps1
+
+      - name: Validate Bicep syntax
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          az bicep build --file .\infrastructure\function-app\main.bicep --stdout | Out-Null
+
+      - name: Validate backend tenant and authentication-profile configuration
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          .\tests\Backend-Configuration-Validation.ps1
 
       - name: Final package safety check
         shell: powershell

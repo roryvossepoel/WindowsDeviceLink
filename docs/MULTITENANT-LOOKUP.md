@@ -55,11 +55,8 @@ Optional query parameter:
 tenantId=<tenant-id>
 ```
 
-When `tenantId` is omitted, the Function searches every tenant in:
-
-```text
-WINDOWSDEVICELINK_ALLOWED_TENANTS
-```
+When `tenantId` is omitted, the Function searches every tenant in
+`WINDOWSDEVICELINK_CONFIGURATION_JSON`.
 
 When `tenantId` is supplied, only that tenant is searched and it must still be present in the allow list.
 
@@ -159,26 +156,8 @@ These fields identify whether a failure occurred while obtaining a token or quer
 
 ## Friendly tenant names
 
-The deployment optionally accepts:
-
-```text
-tenantNamesJson
-```
-
-Example:
-
-```json
-{
-  "11111111-1111-1111-1111-111111111111": "Tenant Alpha",
-  "22222222-2222-2222-2222-222222222222": "Tenant Beta"
-}
-```
-
-This becomes:
-
-```text
-WINDOWSDEVICELINK_TENANT_NAMES_JSON
-```
+Tenant names are declared directly on tenant entries in
+`WINDOWSDEVICELINK_CONFIGURATION_JSON`.
 
 Tenant names are display metadata only. Tenant IDs remain the routing and security boundary.
 

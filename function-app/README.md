@@ -35,15 +35,13 @@ The Function reads these application settings:
 | Setting | Purpose |
 |---|---|
 | `WINDOWSDEVICELINK_API_KEY` | Shared API key expected in `X-WindowsDeviceLink-Key`. |
-| `WINDOWSDEVICELINK_CLIENT_ID` | Client ID of the multitenant Entra application. |
-| `WINDOWSDEVICELINK_ALLOWED_TENANTS` | Comma/semicolon-separated allow list of target tenant IDs. Required; backend fails closed when empty. |
-| `WINDOWSDEVICELINK_DEFAULT_TENANT_ID` | Optional default tenant when the request omits `tenantId`. |
-| `WINDOWSDEVICELINK_TENANT_NAMES_JSON` | Optional tenant ID -> friendly name mapping used by lookup responses. |
-| `WINDOWSDEVICELINK_CERTIFICATE_PFX_BASE64` | Preferred Graph credential: base64 PFX, normally supplied through a Key Vault reference. |
-| `WINDOWSDEVICELINK_CERTIFICATE_PASSWORD` | Optional PFX password. |
-| `WINDOWSDEVICELINK_CLIENT_SECRET` | Fallback Graph client secret, normally supplied through a Key Vault reference. |
+| `WINDOWSDEVICELINK_CONFIGURATION_JSON` | Non-secret backend JSON containing tenants and authentication profiles. Required; backend fails closed when invalid. |
+| Profile-defined credential settings | Key Vault-backed settings containing a base64 PFX or client secret. Setting names are referenced from the backend JSON. |
 
-For Microsoft Graph authentication in this **reference Function implementation**, certificate-based App Registration authentication is preferred over a client secret. When both are configured, the certificate is used.
+For Microsoft Graph authentication, each tenant references exactly one authentication
+profile. A profile explicitly selects certificate or client-secret authentication;
+certificate authentication is preferred. Multiple tenants can share one multitenant
+application profile, or use separate profiles and credentials.
 
 The Function's system-assigned Managed Identity is used for Key Vault access in the reference deployment; it is not the Graph identity used by the supplied multi-tenant Function code.
 
@@ -76,6 +74,7 @@ Admin consent must be granted in each target tenant.
 
 See:
 
+- [../docs/BACKEND-CONFIGURATION.md](../docs/BACKEND-CONFIGURATION.md)
 - [../docs/AZURE-BACKEND.md](../docs/AZURE-BACKEND.md)
 - [../docs/APP-REGISTRATION.md](../docs/APP-REGISTRATION.md)
 - [../docs/MULTITENANT-CONSENT.md](../docs/MULTITENANT-CONSENT.md)

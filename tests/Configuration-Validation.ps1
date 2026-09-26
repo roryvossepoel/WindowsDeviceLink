@@ -4,24 +4,25 @@ $ErrorActionPreference='Stop'
 Import-Module $ModulePath -Force
 $module=Get-Module WindowsDeviceLink
 function Assert-True($Condition,$Message) { if (-not $Condition) { throw "FAIL: $Message" } }
+function Read-TestConfiguration([string]$Value) { @(& $module { param($v) Read-WindowsDeviceLinkConfiguration -Configuration $v } $Value) }
 function Assert-Rejected([string]$Json) {
     $rejected=$false
-    try { $null=Get-WindowsDeviceLinkTenantCatalog -Configuration $Json } catch { $rejected=$true }
+    try { $null=Read-TestConfiguration $Json } catch { $rejected=$true }
     Assert-True $rejected 'Invalid configuration was accepted'
 }
 $a='11111111-1111-1111-1111-111111111111'; $b='22222222-2222-2222-2222-222222222222'
 $shared='33333333-3333-3333-3333-333333333333'; $override='44444444-4444-4444-4444-444444444444'
 $config=@{ schemaVersion=1;mode='Direct';clientId=$shared;tenants=@(@{name='Tenant Alpha';tenantId=$a},@{name='Tenant Beta';tenantId=$b;clientId=$override}) }
 $json=$config | ConvertTo-Json -Depth 5
-$entries=@(Get-WindowsDeviceLinkTenantCatalog -Configuration $json)
+$entries=@(Read-TestConfiguration $json)
 Assert-True ($entries.Count -eq 2 -and $entries[0].ClientId -eq $shared -and $entries[1].ClientId -eq $override) 'Tenant clientId must override the shared clientId'
 $single=@{schemaVersion=1;mode='Direct';tenants=@(@{name='Tenant Alpha';tenantId=$a})}|ConvertTo-Json -Depth 5
-$one=@(Get-WindowsDeviceLinkTenantCatalog -Configuration $single)
+$one=@(Read-TestConfiguration $single)
 Assert-True ($one.Count -eq 1 -and -not $one[0].ClientId) 'Omitted clientId must leave the authentication default intact'
 $tempPath=Join-Path ([IO.Path]::GetTempPath()) ('wdl-config-'+[guid]::NewGuid()+'.json')
 try {
     $json | Set-Content -LiteralPath $tempPath -Encoding UTF8
-    $file=@(Get-WindowsDeviceLinkTenantCatalog -Configuration $tempPath)
+    $file=@(Read-TestConfiguration $tempPath)
     Assert-True ($file[1].ClientId -eq $override -and $file[0].Source -ne 'Inline JSON') 'Local configuration loading failed'
 } finally { Remove-Item -LiteralPath $tempPath -ErrorAction SilentlyContinue }
 # Mock only the HTTP boundary. Use the production reader and parser.
@@ -35,7 +36,7 @@ try {
         [pscustomobject]@{StatusCode=200;Content=$script:ConfigurationResponse}
     }
 } $json
-$web=@(Get-WindowsDeviceLinkTenantCatalog -Configuration 'https://config.example.com/devicelink.json')
+$web=@(Read-TestConfiguration 'https://config.example.com/devicelink.json')
 Assert-True ($web.Count -eq 2 -and $web[1].ClientId -eq $override) 'HTTPS configuration loading failed'
 foreach ($invalidUri in @('http://config.example.com/config.json','ftp://config.example.com/config.json','https://user:password@config.example.com/config.json','https://config.example.com/config.json#fragment')) { Assert-Rejected $invalidUri }
 Assert-True ((& $module {$script:ConfigurationRequests}) -eq 1) 'Invalid URL was requested'

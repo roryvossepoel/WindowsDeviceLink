@@ -41,18 +41,9 @@ using the same application/client ID and backend certificate (or client secret).
 
 Consent alone is intentionally not enough.
 
-Add the target tenant ID to the Function configuration:
-
-```text
-WINDOWSDEVICELINK_ALLOWED_TENANTS
-```
-
-Example:
-
-```text
-11111111-1111-1111-1111-111111111111;
-22222222-2222-2222-2222-222222222222
-```
+Add the target tenant to `WINDOWSDEVICELINK_CONFIGURATION_JSON` and reference the
+authentication profile that has consent in that tenant. See
+[BACKEND-CONFIGURATION.md](BACKEND-CONFIGURATION.md).
 
 Requests for tenants not in this list return HTTP 403.
 

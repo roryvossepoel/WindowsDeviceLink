@@ -24,6 +24,7 @@ $global:wdlBackendTest_correlation = '33333333-3333-3333-3333-333333333333'
 $global:wdlBackendTest_secretMarker = 'DO-NOT-EXPOSE-UPSTREAM-BODY'
 $global:wdlBackendTest_scenario = 'absent'
 $global:wdlBackendTest_httpCalls = [System.Collections.Generic.List[object]]::new()
+$global:wdlBackendTest_tokenClients = @{}
 $global:wdlBackendTest_response = $null
 
 function Push-OutputBinding {
@@ -48,8 +49,12 @@ function Invoke-RestMethod {
     if ($Uri -like 'https://login.microsoftonline.com/*/oauth2/v2.0/token') {
         Assert-True ($Method -eq 'POST') 'Token request must use POST.'
         Assert-True ($Body.scope -eq 'https://graph.microsoft.com/.default') 'Unexpected token scope.'
-        Assert-True (-not [string]::IsNullOrWhiteSpace($Body.client_assertion)) 'Certificate assertion missing.'
+        Assert-True ((-not [string]::IsNullOrWhiteSpace($Body.client_assertion)) -xor (-not [string]::IsNullOrWhiteSpace($Body.client_secret))) 'Token request must contain exactly one configured credential type.'
         $tenant = ([uri]$Uri).Segments[1].TrimEnd('/')
+        $global:wdlBackendTest_tokenClients[$tenant] = [string]$Body.client_id
+        if ($tenant -eq $global:wdlBackendTest_tenantB) {
+            Assert-True ($Body.client_secret -eq 'synthetic-client-secret') 'Tenant B did not use its configured client secret.'
+        }
         if ($global:wdlBackendTest_scenario -eq 'token401' -or ($global:wdlBackendTest_scenario -eq 'partial' -and $tenant -eq $global:wdlBackendTest_tenantB)) {
             Throw-UpstreamTestError 401 (@{
                 error = 'invalid_client'
@@ -127,6 +132,7 @@ function Invoke-LookupTest {
     param([string]$Scenario, [string]$ApiKey = 'synthetic-api-key', [string]$TenantId)
     $global:wdlBackendTest_scenario = $Scenario
     $global:wdlBackendTest_httpCalls.Clear()
+    $global:wdlBackendTest_tokenClients = @{}
     $global:wdlBackendTest_response = $null
     $query = @{ serialNumber = $global:wdlBackendTest_serial }
     if ($TenantId) { $query.tenantId = $TenantId }
@@ -155,6 +161,7 @@ function Invoke-WorkflowTest {
     )
     $global:wdlBackendTest_scenario = $Scenario
     $global:wdlBackendTest_httpCalls.Clear()
+    $global:wdlBackendTest_tokenClients = @{}
     $global:wdlBackendTest_response = $null
     $global:wdlBackendTest_postAttempted = $false
     $global:wdlBackendTest_deleteAttempted = $false
@@ -202,10 +209,8 @@ function Invoke-WorkflowTest {
 $stageRoot = Join-Path ([IO.Path]::GetTempPath()) ('wdl-backend-test-' + [guid]::NewGuid().ToString('N'))
 $savedEnvironment = @{}
 $environmentNames = @(
-    'WINDOWSDEVICELINK_API_KEY','WINDOWSDEVICELINK_CLIENT_ID',
-    'WINDOWSDEVICELINK_ALLOWED_TENANTS','WINDOWSDEVICELINK_TENANT_NAMES_JSON',
-    'WINDOWSDEVICELINK_CERTIFICATE_PFX_BASE64','WINDOWSDEVICELINK_CERTIFICATE_PASSWORD',
-    'WINDOWSDEVICELINK_CLIENT_SECRET'
+    'WINDOWSDEVICELINK_API_KEY','WINDOWSDEVICELINK_CONFIGURATION_JSON',
+    'WINDOWSDEVICELINK_GRAPH_TEST_CERTIFICATE','WINDOWSDEVICELINK_GRAPH_TEST_CERTIFICATE_PASSWORD','WINDOWSDEVICELINK_GRAPH_TEST_SECRET'
 )
 foreach ($name in $environmentNames) {
     $savedEnvironment[$name] = [Environment]::GetEnvironmentVariable($name)
@@ -236,12 +241,22 @@ try {
     )
     $certificate = $request.CreateSelfSigned([DateTimeOffset]::UtcNow.AddMinutes(-5), [DateTimeOffset]::UtcNow.AddHours(1))
     $env:WINDOWSDEVICELINK_API_KEY = 'synthetic-api-key'
-    $env:WINDOWSDEVICELINK_CLIENT_ID = '44444444-4444-4444-4444-444444444444'
-    $env:WINDOWSDEVICELINK_ALLOWED_TENANTS = "$global:wdlBackendTest_tenantA,$global:wdlBackendTest_tenantB"
-    $env:WINDOWSDEVICELINK_TENANT_NAMES_JSON = "{`"$global:wdlBackendTest_tenantA`":`"Tenant A`",`"$global:wdlBackendTest_tenantB`":`"Tenant B`"}"
-    $env:WINDOWSDEVICELINK_CERTIFICATE_PFX_BASE64 = [Convert]::ToBase64String($certificate.Export([System.Security.Cryptography.X509Certificates.X509ContentType]::Pfx))
-    $env:WINDOWSDEVICELINK_CERTIFICATE_PASSWORD = ''
-    $env:WINDOWSDEVICELINK_CLIENT_SECRET = ''
+    $backendConfiguration = @{
+        schemaVersion = 1
+        mode = 'Backend'
+        authenticationProfiles = @{
+            'app-a' = @{ method='Certificate'; clientId='44444444-4444-4444-4444-444444444444'; credentialSetting='WINDOWSDEVICELINK_GRAPH_TEST_CERTIFICATE'; certificatePasswordSetting='WINDOWSDEVICELINK_GRAPH_TEST_CERTIFICATE_PASSWORD' }
+            'app-b' = @{ method='ClientSecret'; clientId='55555555-5555-5555-5555-555555555555'; credentialSetting='WINDOWSDEVICELINK_GRAPH_TEST_SECRET' }
+        }
+        tenants = @(
+            @{ name='Tenant A'; tenantId=$global:wdlBackendTest_tenantA; authenticationProfile='app-a' }
+            @{ name='Tenant B'; tenantId=$global:wdlBackendTest_tenantB; authenticationProfile='app-b' }
+        )
+    }
+    $env:WINDOWSDEVICELINK_CONFIGURATION_JSON = $backendConfiguration | ConvertTo-Json -Depth 8 -Compress
+    $env:WINDOWSDEVICELINK_GRAPH_TEST_CERTIFICATE = [Convert]::ToBase64String($certificate.Export([System.Security.Cryptography.X509Certificates.X509ContentType]::Pfx))
+    $env:WINDOWSDEVICELINK_GRAPH_TEST_CERTIFICATE_PASSWORD = ''
+    $env:WINDOWSDEVICELINK_GRAPH_TEST_SECRET = 'synthetic-client-secret'
 
     $global:wdlBackendTest_response = $null
     $tenantRequest = [pscustomobject]@{ Headers=@{ 'X-WindowsDeviceLink-Key'='synthetic-api-key' } }
@@ -251,6 +266,7 @@ try {
     Assert-True ($tenantBody.apiVersion -eq '1.0' -and $tenantBody.minimumModuleVersion -eq '0.10.0') 'Tenant catalog did not return the expected compatibility contract.'
     Assert-True (@($tenantBody.capabilities).Count -ge 4 -and 'Reconcile' -in @($tenantBody.capabilities) -and 'Offboarding' -in @($tenantBody.capabilities)) 'Tenant catalog did not advertise required capabilities.'
     Assert-True (@($tenantBody.tenants | Where-Object name -eq 'Tenant A').Count -eq 1) 'Tenant catalog lost its friendly-name mapping.'
+    Assert-True (-not $tenantBody.tenants[0].PSObject.Properties['authenticationProfile']) 'Tenant catalog exposed an internal authentication profile.'
     Assert-True (-not (($tenantLogs | Out-String) + $global:wdlBackendTest_response.Body).Contains('synthetic-api-key')) 'Tenant catalog leaked the API key.'
     $global:wdlBackendTest_response = $null
     $tenantRequest.Headers['X-WindowsDeviceLink-Key'] = 'wrong-key'
@@ -307,8 +323,11 @@ try {
     . (Join-Path $stageRoot 'shared/BackendAuth.ps1')
     . (Join-Path $stageRoot 'shared/AssociationOperations.ps1')
     $global:wdlBackendTest_scenario = 'absent'
-    $empty = Get-WindowsDeviceLinkTenantAssociation -TenantId $global:wdlBackendTest_tenantA -SerialNumber $global:wdlBackendTest_serial -ClientId $env:WINDOWSDEVICELINK_CLIENT_ID
+    $empty = Get-WindowsDeviceLinkTenantAssociation -TenantId $global:wdlBackendTest_tenantA -SerialNumber $global:wdlBackendTest_serial
     Assert-True ($empty.Matches -is [array] -and $empty.Matches.Count -eq 0) 'Shared association lookup must support an absent device.'
+    Assert-True ($global:wdlBackendTest_tokenClients[$global:wdlBackendTest_tenantA] -eq '44444444-4444-4444-4444-444444444444') 'Tenant A did not use its authentication profile.'
+    $null = Get-WindowsDeviceLinkTenantAssociation -TenantId $global:wdlBackendTest_tenantB -SerialNumber $global:wdlBackendTest_serial
+    Assert-True ($global:wdlBackendTest_tokenClients[$global:wdlBackendTest_tenantB] -eq '55555555-5555-5555-5555-555555555555') 'Tenant B did not use its authentication profile.'
     Write-Host 'PASS: shared association helper accepts an empty collection'
 
     foreach ($status in @(403,409,429)) {
@@ -334,6 +353,8 @@ try {
 
     $result = Invoke-WorkflowTest Reconcile 'operation-success' -SourcePresent $true -SourceTenantId $global:wdlBackendTest_tenantA
     Assert-True ($result.StatusCode -eq 200 -and $result.Body.decision -eq 'Move' -and $result.DeleteCount -eq 1 -and $result.ImportCount -eq 1) 'Successful Move regressed.'
+    Assert-True ($global:wdlBackendTest_tokenClients[$global:wdlBackendTest_tenantA] -eq '44444444-4444-4444-4444-444444444444') 'Move did not use the source tenant certificate profile.'
+    Assert-True ($global:wdlBackendTest_tokenClients[$global:wdlBackendTest_tenantB] -eq '55555555-5555-5555-5555-555555555555') 'Move did not use the target tenant client-secret profile.'
     $result = Invoke-WorkflowTest Reconcile 'operation-success' -SourcePresent $true -SourceTenantId $global:wdlBackendTest_tenantA -TargetTenantId $global:wdlBackendTest_tenantA -RepairExistingAssociation
     Assert-True ($result.StatusCode -eq 200 -and $result.Body.decision -eq 'Repair' -and $result.DeleteCount -eq 1 -and $result.ImportCount -eq 1) 'Successful same-tenant Repair regressed.'
     $result = Invoke-WorkflowTest Reconcile 'operation-import403' -SourcePresent $true -SourceTenantId $global:wdlBackendTest_tenantA -TargetTenantId $global:wdlBackendTest_tenantA -RepairExistingAssociation

@@ -15,13 +15,12 @@ function Get-WindowsDeviceLinkExactSerialMatches {
 function Get-WindowsDeviceLinkTenantAssociation {
     param(
         [Parameter(Mandatory)][string]$TenantId,
-        [Parameter(Mandatory)][string]$SerialNumber,
-        [Parameter(Mandatory)][string]$ClientId
+        [Parameter(Mandatory)][string]$SerialNumber
     )
 
     $token = $null
     try {
-        $token = Get-WindowsDeviceLinkBackendGraphToken -TenantId $TenantId -ClientId $ClientId
+        $token = Get-WindowsDeviceLinkBackendGraphToken -TenantId $TenantId
         if ([string]::IsNullOrWhiteSpace($token)) {
             throw 'Microsoft identity platform returned no access token.'
         }

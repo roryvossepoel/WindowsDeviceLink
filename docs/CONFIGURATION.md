@@ -110,21 +110,12 @@ when it is not already available.
   Files and JSON payloads are limited to 1 MiB. Use only trusted configuration sources:
   changing the file changes the destination tenant or application used for sign-in.
 
-## CLI
+## CLI boundary
 
-The CLI catalog reader accepts the same parameter and returns the effective ClientId:
-
-```powershell
-$tenant = Get-WindowsDeviceLinkTenantCatalog `
-    -Configuration 'X:\Config\devicelink.json' -Name 'Tenant Alpha'
-
-$auth = @{ Method = 'Interactive'; TenantId = $tenant.TenantId }
-if ($tenant.ClientId) { $auth.ClientId = $tenant.ClientId }
-Set-WindowsDeviceLinkTenant @auth
-```
-
-Omit `-Name` to list all entries, or use `-TenantId` as the selection filter.
-The catalog reader never authenticates or mutates device state.
+This configuration belongs to `Show-WindowsDeviceLink` and is not a second CLI
+configuration route. CLI commands use explicit `TenantId`, optional `ClientId`, and
+`Method` parameters. An external UI or bootstrapper may maintain its own configuration
+and pass those explicit values to the module.
 
 ## Generic examples
 

@@ -105,17 +105,6 @@ if ([string]::IsNullOrWhiteSpace($serialNumber)) {
 }
 $serialNumber = $serialNumber.Trim()
 
-$clientId = [Environment]::GetEnvironmentVariable('WINDOWSDEVICELINK_CLIENT_ID')
-if ([string]::IsNullOrWhiteSpace($clientId)) {
-    Write-JsonResponse -StatusCode 500 -Body @{
-        success = $false
-        requestId = $requestId
-        error = 'BackendConfigurationError'
-        message = 'WINDOWSDEVICELINK_CLIENT_ID is not configured.'
-    }
-    return
-}
-
 try {
     $allowedTenants = @(Get-WindowsDeviceLinkAllowedTenants)
     $tenantNames = Get-WindowsDeviceLinkTenantNames
@@ -168,7 +157,7 @@ foreach ($tenantId in $tenantsToSearch) {
     $stage = 'GraphToken'
 
     try {
-        $token = Get-WindowsDeviceLinkBackendGraphToken -TenantId $tenantId -ClientId $clientId
+        $token = Get-WindowsDeviceLinkBackendGraphToken -TenantId $tenantId
         if ([string]::IsNullOrWhiteSpace($token)) {
             throw 'Microsoft identity platform returned no access token.'
         }

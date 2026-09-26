@@ -77,7 +77,7 @@ For each target tenant:
 3. the backend requests a token from that target tenant using the same application/client ID and credential;
 4. Microsoft Graph evaluates the application permission granted in that target tenant.
 
-The Function additionally uses an explicit tenant allow list and rejects unknown tenant IDs before authentication.
+The Function additionally uses the explicit tenant list in its backend configuration and rejects unknown tenant IDs before authentication.
 
 ## Same-tenant Managed Identity
 
@@ -94,14 +94,12 @@ The Azure Function reference implementation currently uses its Managed Identity 
 The Function backend requires:
 
 ```text
-WINDOWSDEVICELINK_CLIENT_ID
-WINDOWSDEVICELINK_ALLOWED_TENANTS
 WINDOWSDEVICELINK_API_KEY
-
-and one of:
-
-WINDOWSDEVICELINK_CERTIFICATE_PFX_BASE64
-WINDOWSDEVICELINK_CLIENT_SECRET
+WINDOWSDEVICELINK_CONFIGURATION_JSON
 ```
+
+The backend JSON maps tenants to authentication profiles. Each profile references a
+Key Vault-backed Function App setting containing its certificate or client secret. See
+[BACKEND-CONFIGURATION.md](BACKEND-CONFIGURATION.md).
 
 See [MULTITENANT-CONSENT.md](MULTITENANT-CONSENT.md) for tenant onboarding.

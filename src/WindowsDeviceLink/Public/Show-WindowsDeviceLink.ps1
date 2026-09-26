@@ -77,7 +77,7 @@ function Show-WindowsDeviceLink {
     }
     # Validate before creating a window or making any authentication request.
     $configuredTenants = if ($outerBoundParameters.ContainsKey('Configuration')) {
-        @(Get-WindowsDeviceLinkTenantCatalog -Configuration $Configuration)
+        @(Read-WindowsDeviceLinkConfiguration -Configuration $Configuration)
     } else { @() }
 
     if ($backendMode -and $outerBoundParameters.ContainsKey('Method')) {

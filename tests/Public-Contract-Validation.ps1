@@ -59,7 +59,6 @@ $expectedFunctions = @(
     'Get-WindowsDeviceLinkLocalAssociation'
     'Get-WindowsDeviceLinkRepairPlan'
     'Get-WindowsDeviceLinkStatus'
-    'Get-WindowsDeviceLinkTenantCatalog'
     'Initialize-WindowsDeviceLink'
     'Register-WindowsDeviceLink'
     'Remove-WindowsDeviceLinkAssociation'
@@ -106,7 +105,7 @@ foreach ($name in @('Get-WindowsDeviceLinkLocalAssociation','Get-WindowsDeviceLi
     Assert-True (-not $command.Parameters.ContainsKey('WhatIf')) "$name must remain read-only and must not expose -WhatIf."
     Assert-True (-not $command.Parameters.ContainsKey('Confirm')) "$name must remain read-only and must not expose -Confirm."
 }
-foreach ($name in @('Get-WindowsDeviceLinkBackendTenant','Get-WindowsDeviceLinkTenantCatalog')) {
+foreach ($name in @('Get-WindowsDeviceLinkBackendTenant')) {
     $command = Get-Command $name
     Assert-True (-not $command.Parameters.ContainsKey('WhatIf')) "$name must remain read-only."
     Assert-True (-not $command.Parameters.ContainsKey('Confirm')) "$name must remain read-only."

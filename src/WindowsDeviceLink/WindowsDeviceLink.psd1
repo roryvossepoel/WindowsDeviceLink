@@ -19,7 +19,6 @@
         'Get-WindowsDeviceLinkLocalAssociation'
         'Get-WindowsDeviceLinkRepairPlan'
         'Get-WindowsDeviceLinkStatus'
-        'Get-WindowsDeviceLinkTenantCatalog'
         'Initialize-WindowsDeviceLink'
         'Register-WindowsDeviceLink'
         'Remove-WindowsDeviceLinkAssociation'

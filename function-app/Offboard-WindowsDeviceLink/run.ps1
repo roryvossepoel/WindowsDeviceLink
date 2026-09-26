@@ -84,13 +84,11 @@ catch {
 
 $serialNumber = ([string]$body.serialNumber).Trim()
 $sourceTenantId = ([string]$body.sourceTenantId).Trim().ToLowerInvariant()
-$clientId = [Environment]::GetEnvironmentVariable('WINDOWSDEVICELINK_CLIENT_ID')
-if ([string]::IsNullOrWhiteSpace($clientId)) {
-    Write-OffboardError -StatusCode 500 -Error 'BackendConfigurationError' -Message 'WINDOWSDEVICELINK_CLIENT_ID is not configured.' -RequestId $requestId -SourceTenantId $sourceTenantId
+try { $allowedTenants = @(Get-WindowsDeviceLinkAllowedTenants) }
+catch {
+    Write-OffboardError -StatusCode 500 -Error 'BackendConfigurationError' -Message $_.Exception.Message -RequestId $requestId -SourceTenantId $sourceTenantId
     return
 }
-
-$allowedTenants = @(Get-WindowsDeviceLinkAllowedTenants)
 if ($allowedTenants.Count -eq 0) {
     Write-OffboardError -StatusCode 500 -Error 'BackendConfigurationError' -Message 'No allowed tenants are configured. The backend fails closed.' -RequestId $requestId -SourceTenantId $sourceTenantId
     return
@@ -103,7 +101,7 @@ if ($sourceTenantId -and $sourceTenantId -notin $allowedTenants) {
 $detected = New-Object System.Collections.Generic.List[object]
 foreach ($tenantId in $allowedTenants) {
     try {
-        $lookup = Get-WindowsDeviceLinkTenantAssociation -TenantId $tenantId -SerialNumber $serialNumber -ClientId $clientId
+        $lookup = Get-WindowsDeviceLinkTenantAssociation -TenantId $tenantId -SerialNumber $serialNumber
         foreach ($match in @($lookup.Matches)) {
             $detected.Add([pscustomobject]@{ TenantId=$tenantId; AssociationId=[string]$match.id; AssociationState=[string]$match.associationState })
         }
@@ -129,7 +127,7 @@ if ($sourceTenantId -and $sourceTenantId -ne $current.TenantId) {
     return
 }
 
-$verified = Get-WindowsDeviceLinkTenantAssociation -TenantId $current.TenantId -SerialNumber $serialNumber -ClientId $clientId
+$verified = Get-WindowsDeviceLinkTenantAssociation -TenantId $current.TenantId -SerialNumber $serialNumber
 $matches = @($verified.Matches)
 if ($matches.Count -ne 1 -or [string]$matches[0].id -ne $current.AssociationId) {
     Write-OffboardError -StatusCode 409 -Error 'SourceStateChanged' -Message 'The cloud association changed between lookup and removal. No deletion was performed.' -RequestId $requestId -SourceTenantId $current.TenantId
@@ -143,7 +141,7 @@ try {
 catch {
     $deleteError = $_
     try {
-        $verifyAfterError = Get-WindowsDeviceLinkTenantAssociation -TenantId $current.TenantId -SerialNumber $serialNumber -ClientId $clientId
+        $verifyAfterError = Get-WindowsDeviceLinkTenantAssociation -TenantId $current.TenantId -SerialNumber $serialNumber
     }
     catch {
         Write-OffboardError -StatusCode 502 -Error 'RemovalVerificationFailed' -Message 'Cloud removal was attempted, but the resulting state could not be read. Verify cloud state before retrying.' -RequestId $requestId -SourceTenantId $current.TenantId -Stage 'GraphVerify' -UpstreamError $_
@@ -157,7 +155,7 @@ catch {
 finally { $token = $null }
 
 try {
-    $verifyAbsent = Get-WindowsDeviceLinkTenantAssociation -TenantId $current.TenantId -SerialNumber $serialNumber -ClientId $clientId
+    $verifyAbsent = Get-WindowsDeviceLinkTenantAssociation -TenantId $current.TenantId -SerialNumber $serialNumber
 }
 catch {
     Write-OffboardError -StatusCode 502 -Error 'RemovalVerificationFailed' -Message 'Cloud removal was attempted, but the resulting state could not be verified.' -RequestId $requestId -SourceTenantId $current.TenantId -Stage 'GraphVerify' -UpstreamError $_

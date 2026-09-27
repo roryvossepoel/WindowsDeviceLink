@@ -121,6 +121,8 @@ foreach ($required in @(
     'Last checked',
     'Activity log copied to clipboard.',
     '[System.Windows.Forms.Clipboard]::SetText($consoleBox.Text)',
+    '$consoleBox.ScrollBars = [System.Windows.Forms.ScrollBars]::Vertical',
+    '$consoleBox.WordWrap = $true',
     'Target tenant',
     'Pre-associate',
     'Associate',

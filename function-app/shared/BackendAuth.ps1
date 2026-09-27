@@ -28,12 +28,17 @@ function ConvertTo-Base64Url {
 }
 
 function Get-BackendCertificate {
-    $pfxBase64 = [Environment]::GetEnvironmentVariable('WINDOWSDEVICELINK_CERTIFICATE_PFX_BASE64')
+    param(
+        [Parameter(Mandatory)][string]$CredentialSetting,
+        [string]$PasswordSetting
+    )
+
+    $pfxBase64 = [Environment]::GetEnvironmentVariable($CredentialSetting)
     if ([string]::IsNullOrWhiteSpace($pfxBase64)) { return $null }
 
     try {
         $bytes = [Convert]::FromBase64String($pfxBase64)
-        $password = [Environment]::GetEnvironmentVariable('WINDOWSDEVICELINK_CERTIFICATE_PASSWORD')
+        $password = if ($PasswordSetting) { [Environment]::GetEnvironmentVariable($PasswordSetting) } else { $null }
         return [X509Certificate2]::new(
             $bytes,
             $password,
@@ -93,15 +98,140 @@ function New-ClientAssertion {
     '{0}.{1}' -f $unsigned,(ConvertTo-Base64Url -Bytes $signature)
 }
 
+function Get-WindowsDeviceLinkBackendConfiguration {
+    $raw = [Environment]::GetEnvironmentVariable('WINDOWSDEVICELINK_CONFIGURATION_JSON')
+    if ([string]::IsNullOrWhiteSpace($raw)) {
+        throw 'WINDOWSDEVICELINK_CONFIGURATION_JSON is not configured.'
+    }
+    if ([Text.Encoding]::UTF8.GetByteCount($raw) -gt 1MB) {
+        throw 'The backend configuration exceeds 1 MiB.'
+    }
+
+    try { $document = $raw | ConvertFrom-Json -ErrorAction Stop }
+    catch { throw 'WINDOWSDEVICELINK_CONFIGURATION_JSON is not valid JSON.' }
+
+    $rootFields = @('schemaVersion','mode','defaultTenantId','authenticationProfiles','tenants')
+    foreach ($property in $document.PSObject.Properties) {
+        if ($property.Name -cnotin $rootFields) { throw "Unknown backend configuration field '$($property.Name)'." }
+    }
+    if ($document.schemaVersion -isnot [int] -and $document.schemaVersion -isnot [long]) { throw 'schemaVersion must be integer 1.' }
+    if ([int64]$document.schemaVersion -ne 1) { throw 'schemaVersion must be integer 1.' }
+    if ([string]$document.mode -cne 'Backend') { throw "mode must be 'Backend'." }
+    if (-not $document.authenticationProfiles -or $document.authenticationProfiles -isnot [pscustomobject]) {
+        throw 'authenticationProfiles must be a non-empty JSON object.'
+    }
+    if ($document.tenants -isnot [array] -or @($document.tenants).Count -eq 0) {
+        throw 'tenants must be a non-empty JSON array.'
+    }
+
+    $profiles = @{}
+    foreach ($profileProperty in $document.authenticationProfiles.PSObject.Properties) {
+        $profileName = [string]$profileProperty.Name
+        $profile = $profileProperty.Value
+        if ([string]::IsNullOrWhiteSpace($profileName) -or $profileName.Length -gt 128 -or $profileName -match '[\x00-\x1f\x7f]' -or $profile -isnot [pscustomobject]) {
+            throw 'Every authentication profile must have a name and an object value.'
+        }
+        if ($profiles.ContainsKey($profileName.ToLowerInvariant())) { throw "Duplicate authentication profile '$profileName'." }
+        foreach ($property in $profile.PSObject.Properties) {
+            if ($property.Name -cnotin @('method','clientId','credentialSetting','certificatePasswordSetting')) {
+                throw "Unknown field '$($property.Name)' in authentication profile '$profileName'."
+            }
+        }
+        $method = [string]$profile.method
+        if ($method -cnotin @('Certificate','ClientSecret')) {
+            throw "Authentication profile '$profileName' must use Certificate or ClientSecret."
+        }
+        $clientId = [guid]::Empty
+        if (-not [guid]::TryParse([string]$profile.clientId,[ref]$clientId) -or $clientId -eq [guid]::Empty) {
+            throw "Authentication profile '$profileName' has an invalid clientId."
+        }
+        $credentialSetting = ([string]$profile.credentialSetting).Trim()
+        if ($credentialSetting -notmatch '^WINDOWSDEVICELINK_GRAPH_[A-Z0-9_]{1,96}$') {
+            throw "Authentication profile '$profileName' has an invalid credentialSetting."
+        }
+        $passwordSetting = ([string]$profile.certificatePasswordSetting).Trim()
+        if ($passwordSetting -and ($method -ne 'Certificate' -or $passwordSetting -notmatch '^WINDOWSDEVICELINK_GRAPH_[A-Z0-9_]{1,96}$')) {
+            throw "Authentication profile '$profileName' has an invalid certificatePasswordSetting."
+        }
+        $profiles[$profileName.ToLowerInvariant()] = [pscustomobject]@{
+            Name = $profileName
+            Method = $method
+            ClientId = $clientId.ToString()
+            CredentialSetting = $credentialSetting
+            CertificatePasswordSetting = $passwordSetting
+        }
+    }
+    if ($profiles.Count -eq 0) { throw 'At least one authentication profile is required.' }
+
+    $tenants = @{}
+    $names = @{}
+    foreach ($tenant in @($document.tenants)) {
+        if ($tenant -isnot [pscustomobject]) { throw 'Every tenant must be a JSON object.' }
+        foreach ($property in $tenant.PSObject.Properties) {
+            if ($property.Name -cnotin @('name','tenantId','authenticationProfile')) {
+                throw "Unknown tenant field '$($property.Name)'."
+            }
+        }
+        $name = ([string]$tenant.name).Trim()
+        if ([string]::IsNullOrWhiteSpace($name) -or $name.Length -gt 128 -or $name -match '[\x00-\x1f\x7f]') {
+            throw 'Every tenant must have a valid name of at most 128 characters.'
+        }
+        if ($names.ContainsKey($name.ToLowerInvariant())) { throw "Duplicate tenant name '$name'." }
+        $tenantGuid = [guid]::Empty
+        if (-not [guid]::TryParse([string]$tenant.tenantId,[ref]$tenantGuid) -or $tenantGuid -eq [guid]::Empty) {
+            throw "Tenant '$name' has an invalid tenantId."
+        }
+        $tenantId = $tenantGuid.ToString()
+        if ($tenants.ContainsKey($tenantId)) { throw "Duplicate tenantId '$tenantId'." }
+        $profileKey = ([string]$tenant.authenticationProfile).Trim().ToLowerInvariant()
+        if (-not $profiles.ContainsKey($profileKey)) { throw "Tenant '$name' references an unknown authentication profile." }
+        $tenants[$tenantId] = [pscustomobject]@{
+            Name = $name
+            TenantId = $tenantId
+            AuthenticationProfile = $profiles[$profileKey]
+        }
+        $names[$name.ToLowerInvariant()] = $true
+    }
+
+    $defaultTenantId = ([string]$document.defaultTenantId).Trim().ToLowerInvariant()
+    if ($defaultTenantId) {
+        $defaultGuid = [guid]::Empty
+        if (-not [guid]::TryParse($defaultTenantId,[ref]$defaultGuid) -or -not $tenants.ContainsKey($defaultGuid.ToString())) {
+            throw 'defaultTenantId must reference a configured tenant.'
+        }
+        $defaultTenantId = $defaultGuid.ToString()
+    }
+
+    [pscustomobject]@{ Tenants=$tenants; AuthenticationProfiles=$profiles; DefaultTenantId=$defaultTenantId }
+}
+
+function Get-WindowsDeviceLinkBackendTenant {
+    param([Parameter(Mandatory)][string]$TenantId)
+    $configuration = Get-WindowsDeviceLinkBackendConfiguration
+    $parsed = [guid]::Empty
+    if (-not [guid]::TryParse($TenantId,[ref]$parsed) -or -not $configuration.Tenants.ContainsKey($parsed.ToString())) {
+        throw 'The requested tenant is not configured.'
+    }
+    $configuration.Tenants[$parsed.ToString()]
+}
+
 function Get-WindowsDeviceLinkBackendGraphToken {
     param(
-        [Parameter(Mandatory)][string]$TenantId,
-        [Parameter(Mandatory)][string]$ClientId
+        [Parameter(Mandatory)][string]$TenantId
     )
 
+    $tenant = Get-WindowsDeviceLinkBackendTenant -TenantId $TenantId
+    $profile = $tenant.AuthenticationProfile
+    $ClientId = $profile.ClientId
     $tokenUri = "https://login.microsoftonline.com/$TenantId/oauth2/v2.0/token"
-    $certificate = Get-BackendCertificate
-    $clientSecret = [Environment]::GetEnvironmentVariable('WINDOWSDEVICELINK_CLIENT_SECRET')
+    $certificate = $null
+    $clientSecret = $null
+    if ($profile.Method -eq 'Certificate') {
+        $certificate = Get-BackendCertificate -CredentialSetting $profile.CredentialSetting -PasswordSetting $profile.CertificatePasswordSetting
+    }
+    else {
+        $clientSecret = [Environment]::GetEnvironmentVariable($profile.CredentialSetting)
+    }
 
     if ($certificate) {
         $assertion = $null
@@ -132,34 +262,17 @@ function Get-WindowsDeviceLinkBackendGraphToken {
         return (Invoke-RestMethod -Method POST -Uri $tokenUri -ContentType 'application/x-www-form-urlencoded' -Body $body -ErrorAction Stop).access_token
     }
 
-    throw 'No Graph credential is configured. Configure a certificate (preferred) or client secret through Key Vault-backed application settings.'
+    throw "No Graph credential is configured for tenant '$TenantId'."
 }
 
 function Get-WindowsDeviceLinkAllowedTenants {
-    $allowedRaw = [Environment]::GetEnvironmentVariable('WINDOWSDEVICELINK_ALLOWED_TENANTS')
-    @(
-        $allowedRaw -split '[,;\s]+' |
-            Where-Object { -not [string]::IsNullOrWhiteSpace($_) } |
-            ForEach-Object { $_.Trim().ToLowerInvariant() } |
-            Sort-Object -Unique
-    )
+    @((Get-WindowsDeviceLinkBackendConfiguration).Tenants.Keys | Sort-Object)
 }
 
 function Get-WindowsDeviceLinkTenantNames {
-    $raw = [Environment]::GetEnvironmentVariable('WINDOWSDEVICELINK_TENANT_NAMES_JSON')
-    if ([string]::IsNullOrWhiteSpace($raw)) { return @{} }
-
-    try {
-        $obj = $raw | ConvertFrom-Json -ErrorAction Stop
-        $result = @{}
-        foreach ($property in $obj.PSObject.Properties) {
-            $result[$property.Name.ToLowerInvariant()] = [string]$property.Value
-        }
-        return $result
-    }
-    catch {
-        throw 'WINDOWSDEVICELINK_TENANT_NAMES_JSON is not valid JSON.'
-    }
+    $result = @{}
+    foreach ($tenant in (Get-WindowsDeviceLinkBackendConfiguration).Tenants.Values) { $result[$tenant.TenantId] = $tenant.Name }
+    $result
 }
 
 function Get-WindowsDeviceLinkUpstreamFailure {

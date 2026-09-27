@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "mode": "Direct",
+  "tenants": [
+    {
+      "name": "Tenant Alpha",
+      "tenantId": "11111111-1111-1111-1111-111111111111"
+    }
+  ]
+}

@@ -115,13 +115,11 @@ $deviceLink = [string]$body.device.deviceLink
 $repairExistingAssociation = $body.repairExistingAssociation -eq $true
 if ($sourceTenantId) { $sourceTenantId = $sourceTenantId.Trim().ToLowerInvariant() }
 
-$clientId = [Environment]::GetEnvironmentVariable('WINDOWSDEVICELINK_CLIENT_ID')
-if ([string]::IsNullOrWhiteSpace($clientId)) {
-    Write-ReconcileError -StatusCode 500 -Error 'BackendConfigurationError' -Message 'WINDOWSDEVICELINK_CLIENT_ID is not configured.' -RequestId $requestId -SourceTenantId $sourceTenantId -TargetTenantId $targetTenantId
+try { $allowedTenants = @(Get-WindowsDeviceLinkAllowedTenants) }
+catch {
+    Write-ReconcileError -StatusCode 500 -Error 'BackendConfigurationError' -Message $_.Exception.Message -RequestId $requestId -SourceTenantId $sourceTenantId -TargetTenantId $targetTenantId
     return
 }
-
-$allowedTenants = @(Get-WindowsDeviceLinkAllowedTenants)
 if ($allowedTenants.Count -eq 0) {
     Write-ReconcileError -StatusCode 500 -Error 'BackendConfigurationError' -Message 'No allowed tenants are configured. The backend fails closed.' -RequestId $requestId -SourceTenantId $sourceTenantId -TargetTenantId $targetTenantId
     return
@@ -140,7 +138,7 @@ $lookupErrors = New-Object System.Collections.Generic.List[object]
 
 foreach ($tenantId in $allowedTenants) {
     try {
-        $lookup = Get-WindowsDeviceLinkTenantAssociation -TenantId $tenantId -SerialNumber $serialNumber -ClientId $clientId
+        $lookup = Get-WindowsDeviceLinkTenantAssociation -TenantId $tenantId -SerialNumber $serialNumber
         foreach ($match in @($lookup.Matches)) {
             $detected.Add([pscustomobject]@{
                 TenantId = $tenantId
@@ -213,7 +211,7 @@ if ($decision -eq 'Update') {
 }
 
 if ($decision -eq 'New') {
-    $targetLookup = Get-WindowsDeviceLinkTenantAssociation -TenantId $targetTenantId -SerialNumber $serialNumber -ClientId $clientId
+    $targetLookup = Get-WindowsDeviceLinkTenantAssociation -TenantId $targetTenantId -SerialNumber $serialNumber
     $targetToken = [string]$targetLookup.AccessToken
     $createError = $null
     try {
@@ -227,7 +225,7 @@ if ($decision -eq 'New') {
     }
 
     try {
-        $verify = Get-WindowsDeviceLinkTenantAssociation -TenantId $targetTenantId -SerialNumber $serialNumber -ClientId $clientId
+        $verify = Get-WindowsDeviceLinkTenantAssociation -TenantId $targetTenantId -SerialNumber $serialNumber
     }
     catch {
         Write-ReconcileError -StatusCode 502 -Error 'TargetVerificationFailed' -Message 'The target pre-association was attempted, but its resulting state could not be read. Re-run lookup before retrying.' -RequestId $requestId -TargetTenantId $targetTenantId -Decision 'New' -Stage 'GraphVerifyTarget' -UpstreamError $_
@@ -259,7 +257,7 @@ if ($decision -eq 'New') {
 # Move or same-tenant repair. Both operations replace one proven association with
 # the supplied DeviceLink identity and verify every boundary without blind retries.
 $incompleteError = if ($decision -eq 'Repair') { 'RepairIncomplete' } else { 'MoveIncomplete' }
-$sourceLookup = Get-WindowsDeviceLinkTenantAssociation -TenantId $sourceTenantId -SerialNumber $serialNumber -ClientId $clientId
+$sourceLookup = Get-WindowsDeviceLinkTenantAssociation -TenantId $sourceTenantId -SerialNumber $serialNumber
 $sourceMatches = @($sourceLookup.Matches)
 if ($sourceMatches.Count -ne 1 -or [string]$sourceMatches[0].id -ne $current.AssociationId) {
     Write-ReconcileError -StatusCode 409 -Error 'SourceStateChanged' -Message 'The source association changed between decision and mutation. No deletion was performed.' -RequestId $requestId -SourceTenantId $sourceTenantId -TargetTenantId $targetTenantId -Decision $decision
@@ -274,7 +272,7 @@ catch {
     # A DELETE transport failure can be ambiguous. Verify state, but never issue a second DELETE automatically.
     $deleteError = $_
     try {
-        $verifySourceAfterError = Get-WindowsDeviceLinkTenantAssociation -TenantId $sourceTenantId -SerialNumber $serialNumber -ClientId $clientId
+        $verifySourceAfterError = Get-WindowsDeviceLinkTenantAssociation -TenantId $sourceTenantId -SerialNumber $serialNumber
     }
     catch {
         Write-ReconcileError -StatusCode 502 -Error 'SourceVerificationFailed' -Message 'Source removal was attempted, but the resulting source state could not be read. No target registration was attempted.' -RequestId $requestId -SourceTenantId $sourceTenantId -TargetTenantId $targetTenantId -Decision $decision -Stage 'GraphVerifySource' -UpstreamError $_
@@ -290,7 +288,7 @@ finally {
 }
 
 try {
-    $verifySource = Get-WindowsDeviceLinkTenantAssociation -TenantId $sourceTenantId -SerialNumber $serialNumber -ClientId $clientId
+    $verifySource = Get-WindowsDeviceLinkTenantAssociation -TenantId $sourceTenantId -SerialNumber $serialNumber
 }
 catch {
     Write-ReconcileError -StatusCode 502 -Error 'SourceVerificationFailed' -Message 'The source association was removed, but the resulting source state could not be verified. No target registration was attempted.' -RequestId $requestId -SourceTenantId $sourceTenantId -TargetTenantId $targetTenantId -Decision $decision -Stage 'GraphVerifySource' -UpstreamError $_
@@ -302,7 +300,7 @@ if (@($verifySource.Matches).Count -ne 0) {
 }
 
 try {
-    $targetLookup = Get-WindowsDeviceLinkTenantAssociation -TenantId $targetTenantId -SerialNumber $serialNumber -ClientId $clientId
+    $targetLookup = Get-WindowsDeviceLinkTenantAssociation -TenantId $targetTenantId -SerialNumber $serialNumber
 }
 catch {
     Write-ReconcileError -StatusCode 502 -Error $incompleteError -Message 'The source association was removed, but the target state could not be read before registration. Re-run lookup before retrying.' -RequestId $requestId -SourceTenantId $sourceTenantId -TargetTenantId $targetTenantId -Decision $decision -Stage 'GraphLookupTarget' -UpstreamError $_
@@ -326,7 +324,7 @@ finally {
 }
 
 try {
-    $verifyTarget = Get-WindowsDeviceLinkTenantAssociation -TenantId $targetTenantId -SerialNumber $serialNumber -ClientId $clientId
+    $verifyTarget = Get-WindowsDeviceLinkTenantAssociation -TenantId $targetTenantId -SerialNumber $serialNumber
 }
 catch {
     Write-ReconcileError -StatusCode 502 -Error $incompleteError -Message 'The source association was removed and target creation was attempted, but the resulting target state could not be read. Re-run lookup before retrying.' -RequestId $requestId -SourceTenantId $sourceTenantId -TargetTenantId $targetTenantId -Decision $decision -Stage 'GraphVerifyTarget' -UpstreamError $_

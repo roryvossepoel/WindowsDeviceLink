@@ -50,19 +50,11 @@ The removal cmdlet supports the same direct authentication families used by the 
 
 - `DeviceCode`
 - `Interactive`
-- `ClientSecret`
-- `AccessToken`
-- `Certificate`
-- `CertificateThumbprint`
-- `CertificateSubjectName`
-- `EnvironmentVariable`
-- `ManagedIdentity`
 
-`-Method` is mandatory and uses a PowerShell `ValidateSet`, so supported authentication methods are available through tab completion / IntelliSense.
+In Direct mode, `-Method` is mandatory and uses a PowerShell `ValidateSet`, so supported authentication methods are available through tab completion / IntelliSense.
 
 For `Interactive`, `TenantId` is optional. When omitted, the tenant is determined by the interactive Microsoft Entra sign-in context. Specify `-TenantId` when an explicit tenant must be targeted, such as a multitenant workflow.
 
-Other authentication methods can require additional parameters. For example, DeviceCode currently requires `TenantId`, while `EnvironmentVariable` obtains the tenant from `AZURE_TENANT_ID`.
 
 ## Result
 
@@ -110,3 +102,17 @@ Validated on Windows 11:
 - successful `Removed = True` result.
 
 See [`../TESTING.md`](../TESTING.md) for the full validation matrix.
+
+## Backend CLI
+
+For cloud removal through the API, supply a runtime API key instead of Direct credentials:
+
+```powershell
+Remove-WindowsDeviceLinkAssociation `
+    -BackendUri 'https://backend.example.com/api/devicelink' `
+    -BackendApiKey $apiKey
+```
+
+`$apiKey` is a SecureString supplied at runtime. The local serial is used unless
+`-SerialNumber` is supplied. The backend resolves the source tenant. This removes only
+the cloud association; local firmware is unchanged. `-WhatIf` sends no removal request.

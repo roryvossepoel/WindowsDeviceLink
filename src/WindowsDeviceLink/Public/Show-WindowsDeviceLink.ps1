@@ -7,17 +7,14 @@ function Show-WindowsDeviceLink {
     Opens a compact Windows 11 Settings-inspired WinForms dashboard on Windows 11 and supported Windows PE environments.
 
     The GUI focuses on inspecting Device Association state, onboarding, and offboarding.
-    Lifecycle actions delegate to existing WindowsDeviceLink public cmdlets.
+    Lifecycle actions share the same implementations as the WindowsDeviceLink CLI.
 
     Interactive authentication is the default on full Windows. Windows PE defaults to DeviceCode because Interactive browser authentication is unavailable there. Use -Method and the corresponding authentication parameters to select another supported authentication flow.
 
-    Use -Tenants to provide friendly tenant names for the tenant selector:
-
-    @{'Tenant Alpha'='11111111-1111-1111-1111-111111111111'; 'Tenant Beta'='22222222-2222-2222-2222-222222222222'}
-
-    Use -TenantsUri to load the same friendly-name-to-tenant-ID mapping from a trusted HTTPS JSON endpoint.
-    Use -TenantsPath to load the same JSON format from a local file.
-    Precedence is: TenantsUri, then TenantsPath, then explicit -Tenants values.
+    Use -Configuration with a JSON file, trusted HTTPS URL, or inline JSON.
+    One configured tenant is shown as a fixed name; multiple tenants use a selector.
+    Tenant clientId overrides the shared clientId; omitted client IDs use the standard client.
+    Configuration cannot be combined with Backend mode, TenantId or ClientId parameters.
 
     Backend mode retrieves its authoritative tenant catalog from the Function App.
     The dashboard presents device, local-association, and cloud-association state in
@@ -31,72 +28,36 @@ function Show-WindowsDeviceLink {
     Show-WindowsDeviceLink -Method DeviceCode
 
     .EXAMPLE
-    Show-WindowsDeviceLink -Tenants @{
-        'Tenant Alpha' = '11111111-1111-1111-1111-111111111111'
-        'Tenant Beta' = '22222222-2222-2222-2222-222222222222'
-    }
+    Show-WindowsDeviceLink -Configuration 'E:\Config\devicelink.json'
 
     .EXAMPLE
-    Show-WindowsDeviceLink -TenantsUri 'https://config.example.com/windowsdevicelink/tenants.json'
-
-    .EXAMPLE
-    Show-WindowsDeviceLink -TenantsPath 'E:\Config\tenants.json'
+    Show-WindowsDeviceLink -Configuration 'https://config.example.com/devicelink.json'
     #>
     [CmdletBinding()]
     param(
         [ValidateSet(
-            'DeviceCode','Interactive','ClientSecret','AccessToken','Certificate',
-            'CertificateThumbprint','CertificateSubjectName','EnvironmentVariable','ManagedIdentity'
+            'DeviceCode','Interactive'
         )]
         [string]$Method,
-
         [ValidateNotNullOrEmpty()]
         [string]$TenantId,
-
-        [hashtable]$Tenants,
-
-        [ValidateNotNull()]
-        [uri]$TenantsUri,
-
         [ValidateNotNullOrEmpty()]
-        [string]$TenantsPath,
-
+        [string]$Configuration,
         [ValidateNotNullOrEmpty()]
         [string]$ClientId,
-
-        [securestring]$AccessToken,
-
-        [System.Security.Cryptography.X509Certificates.X509Certificate2]$Certificate,
-
-        [ValidateNotNullOrEmpty()]
-        [string]$CertificateThumbprint,
-
-        [ValidateNotNullOrEmpty()]
-        [string]$CertificateSubjectName,
-
-        [bool]$SendCertificateChain = $false,
-
-        [securestring]$ClientSecret,
-
         [ValidateNotNullOrEmpty()]
         [string]$Environment = 'Global',
-
         [ValidateRange(1,600)]
         [double]$ClientTimeout = 100,
-
         [ValidateNotNullOrEmpty()]
-        [string]$WindowsManagementServicePath
-
-        ,[ValidateNotNull()]
-        [uri]$BackendUri
-
-        ,[ValidateNotNull()]
-        [securestring]$BackendApiKey
-
-        ,[ValidateSet('Simple','Advanced')]
-        [string]$ViewMode = 'Simple'
-
-        ,[ValidateRange(5,600)]
+        [string]$WindowsManagementServicePath,
+        [ValidateNotNull()]
+        [uri]$BackendUri,
+        [ValidateNotNull()]
+        [securestring]$BackendApiKey,
+        [ValidateSet('Simple','Advanced')]
+        [string]$ViewMode = 'Simple',
+        [ValidateRange(5,600)]
         [int]$TimeoutSeconds = 120
     )
 
@@ -110,12 +71,14 @@ function Show-WindowsDeviceLink {
     if ($backendMode -and (-not $outerBoundParameters.ContainsKey('BackendUri') -or -not $outerBoundParameters.ContainsKey('BackendApiKey'))) {
         throw '-BackendUri and -BackendApiKey must be supplied together.'
     }
-    if ($backendMode -and ($Tenants -or $outerBoundParameters.ContainsKey('TenantsUri') -or $outerBoundParameters.ContainsKey('TenantsPath'))) {
-        throw 'Backend mode obtains its tenant catalog from the Function App; do not combine it with -Tenants, -TenantsUri, or -TenantsPath.'
+    if ($outerBoundParameters.ContainsKey('Configuration') -and
+        ($backendMode -or $outerBoundParameters.ContainsKey('TenantId') -or $outerBoundParameters.ContainsKey('ClientId'))) {
+        throw '-Configuration cannot be combined with Backend mode, -TenantId or -ClientId. Put Direct tenant/client choices in the configuration.'
     }
-    if (-not $backendMode -and $outerBoundParameters.ContainsKey('TenantId') -and ($Tenants -or $outerBoundParameters.ContainsKey('TenantsUri') -or $outerBoundParameters.ContainsKey('TenantsPath'))) {
-        throw 'Direct mode uses either one explicit -TenantId or a tenant catalog; do not combine them.'
-    }
+    # Validate before creating a window or making any authentication request.
+    $configuredTenants = if ($outerBoundParameters.ContainsKey('Configuration')) {
+        @(Read-WindowsDeviceLinkConfiguration -Configuration $Configuration)
+    } else { @() }
 
     if ($backendMode -and $outerBoundParameters.ContainsKey('Method')) {
         throw 'Backend mode performs Graph operations through the Function App; do not combine it with -Method.'
@@ -125,7 +88,7 @@ function Show-WindowsDeviceLink {
     }
 
     if ($isWinPE -and $Method -eq 'Interactive') {
-        throw 'Interactive authentication is not available in Windows PE. Use -Method DeviceCode or a supported app-only authentication method.'
+        throw 'Interactive authentication is not available in Windows PE. Use -Method DeviceCode or Backend mode.'
     }
     $usesInteractiveUserAuthentication = -not $backendMode -and $Method -in @('Interactive','DeviceCode')
 
@@ -204,7 +167,6 @@ function Show-WindowsDeviceLink {
             $resolvedFamily,$Size,$Style,[System.Drawing.GraphicsUnit]::Point
         )
     }
-
 
     function New-Card {
         param(
@@ -329,6 +291,8 @@ function Show-WindowsDeviceLink {
     }
 
     $effectiveTenants = @{}
+    $tenantClientIds = @{}
+    $fixedConfigurationTenantId = $null
 
     if ($backendMode) {
         $backendTenants = @(Get-WindowsDeviceLinkBackendTenant -BackendUri $BackendUri -BackendApiKey $BackendApiKey)
@@ -338,22 +302,12 @@ function Show-WindowsDeviceLink {
         }
     }
 
-    if ($outerBoundParameters.ContainsKey('TenantsUri')) {
-        foreach ($tenant in @(Get-WindowsDeviceLinkTenantCatalog -Uri $TenantsUri)) {
-            $effectiveTenants[[string]$tenant.Name] = [string]$tenant.TenantId
-        }
+    foreach ($tenant in $configuredTenants) {
+        $effectiveTenants[[string]$tenant.Name] = [string]$tenant.TenantId
+        $tenantClientIds[[string]$tenant.TenantId] = $tenant.ClientId
     }
-
-    if ($outerBoundParameters.ContainsKey('TenantsPath')) {
-        foreach ($tenant in @(Get-WindowsDeviceLinkTenantCatalog -Path $TenantsPath)) {
-            $effectiveTenants[[string]$tenant.Name] = [string]$tenant.TenantId
-        }
-    }
-
-    if ($Tenants) {
-        foreach ($tenant in @(Get-WindowsDeviceLinkTenantCatalog -TenantMap $Tenants)) {
-            $effectiveTenants[[string]$tenant.Name] = [string]$tenant.TenantId
-        }
+    if ($configuredTenants.Count -eq 1) {
+        $fixedConfigurationTenantId = [string]$configuredTenants[0].TenantId
     }
 
     $tenantChoiceLookup = @{}
@@ -377,9 +331,10 @@ function Show-WindowsDeviceLink {
 
     # A true Direct single-tenant workflow has no choice to present. The
     # authenticated sign-in context (or explicit TenantId) remains authoritative.
-    $showTenantSelector = $backendMode -or $effectiveTenants.Count -gt 0
+    $showTenantSelector = $backendMode -or $effectiveTenants.Count -gt 1
 
     function Get-SelectedTenantId {
+        if ($fixedConfigurationTenantId) { return $fixedConfigurationTenantId }
         if ($tenantSelector.SelectedItem) {
             $selected = [string]$tenantSelector.SelectedItem
             if ($tenantChoiceLookup.ContainsKey($selected) -and $tenantChoiceLookup[$selected]) {
@@ -391,6 +346,15 @@ function Show-WindowsDeviceLink {
             return [string]$TenantId
         }
 
+        $null
+    }
+
+    function Get-SelectedClientId {
+        $selectedTenant = Get-SelectedTenantId
+        if ($selectedTenant -and $tenantClientIds.ContainsKey($selectedTenant)) {
+            return $tenantClientIds[$selectedTenant]
+        }
+        if ($outerBoundParameters.ContainsKey('ClientId')) { return $ClientId }
         $null
     }
 
@@ -409,6 +373,7 @@ function Show-WindowsDeviceLink {
 
     function Get-GuiAuthParameters {
         $selectedTenant = Get-SelectedTenantId
+        $selectedClientId = Get-SelectedClientId
 
         if ($hasDirectTenantCatalog -and [string]::IsNullOrWhiteSpace($selectedTenant)) {
             throw 'Select a target tenant before signing in or performing a cloud action.'
@@ -429,7 +394,7 @@ function Show-WindowsDeviceLink {
 
                 $tokenParameters = @{}
                 if ($selectedTenant) { $tokenParameters.TenantId = $selectedTenant }
-                if ($outerBoundParameters.ContainsKey('ClientId')) { $tokenParameters.ClientId = $ClientId }
+                if ($selectedClientId) { $tokenParameters.ClientId = $selectedClientId }
                 $tokenResults = @(Invoke-GuiInformationCommand -ScriptBlock {
                     Get-WindowsDeviceLinkDeviceCodeToken @tokenParameters
                 })
@@ -471,14 +436,7 @@ function Show-WindowsDeviceLink {
             ClientTimeout = $ClientTimeout
         }
 
-        foreach ($name in @(
-            'ClientId','AccessToken','Certificate','CertificateThumbprint',
-            'CertificateSubjectName','SendCertificateChain','ClientSecret'
-        )) {
-            if ($outerBoundParameters.ContainsKey($name)) {
-                $parameters[$name] = $outerBoundParameters[$name]
-            }
-        }
+        if ($selectedClientId) { $parameters.ClientId = $selectedClientId }
 
         if ($selectedTenant) {
             $parameters.TenantId = $selectedTenant
@@ -520,7 +478,6 @@ function Show-WindowsDeviceLink {
         if (-not $backendMode) { throw 'This action requires -BackendUri and -BackendApiKey.' }
         @{ BackendUri=$BackendUri; BackendApiKey=$BackendApiKey; TimeoutSeconds=$TimeoutSeconds }
     }
-
 
     function Get-GuiRuntimeParameters {
         $parameters = @{}
@@ -638,6 +595,9 @@ function Show-WindowsDeviceLink {
     elseif ($showTenantSelector) {
         'Select the destination tenant, then sign in.'
     }
+    elseif ($fixedConfigurationTenantId) {
+        'Sign in to the configured destination tenant.'
+    }
     elseif ($outerBoundParameters.ContainsKey('TenantId')) {
         'The destination tenant is fixed by the supplied tenant ID.'
     }
@@ -703,6 +663,9 @@ function Show-WindowsDeviceLink {
         elseif ($showTenantSelector) {
             'Select the destination tenant, then sign in.'
         }
+        elseif ($fixedConfigurationTenantId) {
+            'Sign in to the configured destination tenant.'
+        }
         elseif ($outerBoundParameters.ContainsKey('TenantId')) {
             'The destination tenant is fixed by the supplied tenant ID.'
         }
@@ -715,8 +678,8 @@ function Show-WindowsDeviceLink {
 
         if ($showTenantSelector) { return }
 
-        $targetTenantId = if ($outerBoundParameters.ContainsKey('TenantId')) {
-            [string]$TenantId
+        $targetTenantId = if (Get-SelectedTenantId) {
+            Get-SelectedTenantId
         }
         elseif (-not [string]::IsNullOrWhiteSpace([string]$script:WdlGuiSessionTenantId)) {
             [string]$script:WdlGuiSessionTenantId
@@ -1427,7 +1390,7 @@ function Show-WindowsDeviceLink {
             foreach ($key in $runtimeParameters.Keys) { $parameters[$key]=$runtimeParameters[$key] }
             $parameters.Online = $true
             if ($WriteCommand) { Write-GuiConsole -Message "Get-WindowsDeviceLinkStatus -Online -Method $Method" -Command }
-            $cloudResults = @(Invoke-GuiInformationCommand -ScriptBlock { Get-WindowsDeviceLinkStatus @parameters })
+            $cloudResults = @(Invoke-GuiInformationCommand -ScriptBlock { Get-WindowsDeviceLinkStatusCore @parameters })
             $cloud = $cloudResults | Select-Object -Last 1
         }
         $script:WdlGuiCloudStatus = $cloud
@@ -1593,7 +1556,7 @@ function Show-WindowsDeviceLink {
             foreach ($key in $runtimeParameters.Keys) { $parameters[$key]=$runtimeParameters[$key] }
             $commandText = if ($backendMode) { "Set-WindowsDeviceLinkTenant -BackendUri <configured> -TargetTenantId $targetId" } elseif ($targetId) { "Set-WindowsDeviceLinkTenant -Method $Method -TenantId $targetId" } else { "Set-WindowsDeviceLinkTenant -Method $Method" }
             Write-GuiConsole -Message $commandText -Command
-            $results = @(Invoke-GuiInformationCommand -ScriptBlock { Set-WindowsDeviceLinkTenant @parameters })
+            $results = @(Invoke-GuiInformationCommand -ScriptBlock { Set-WindowsDeviceLinkTenantCore @parameters })
             $result = $results | Select-Object -Last 1
             Write-GuiObject $result
             Refresh-LocalView
@@ -1788,7 +1751,7 @@ function Show-WindowsDeviceLink {
 
                 Write-GuiConsole -Message "Set-WindowsDeviceLinkTenant -BackendUri <configured> -TargetTenantId $targetId" -Command
                 $assignmentResults = @(Invoke-GuiInformationCommand -ScriptBlock {
-                    Set-WindowsDeviceLinkTenant @assignmentParameters
+                    Set-WindowsDeviceLinkTenantCore @assignmentParameters
                 })
                 $assignment = $assignmentResults | Select-Object -Last 1
                 Write-GuiObject $assignment
@@ -1809,7 +1772,7 @@ function Show-WindowsDeviceLink {
                 Write-GuiConsole -Message "Initialize-WindowsDeviceLink -Method $Method -Associate" -Command
                 $resultObjects = New-Object System.Collections.Generic.List[object]
                 & {
-                    Initialize-WindowsDeviceLink @parameters
+                    Initialize-WindowsDeviceLinkCore @parameters
                 } 6>&1 | ForEach-Object {
                     if ($_ -is [System.Management.Automation.InformationRecord]) {
                         $message = [string]$_.MessageData
@@ -1870,7 +1833,7 @@ function Show-WindowsDeviceLink {
 
             Write-GuiConsole -Message "Remove-WindowsDeviceLinkAssociation -Method $Method" -Command
             $removalResults = @(Invoke-GuiInformationCommand -ScriptBlock {
-                Remove-WindowsDeviceLinkAssociation @parameters
+                Remove-WindowsDeviceLinkAssociationCore @parameters
             })
             $result = $removalResults | Select-Object -Last 1
             Write-GuiObject $result
@@ -2029,10 +1992,10 @@ function Show-WindowsDeviceLink {
             }
             $statusParameters.Online = $true
 
-            $displayMethod = [string]$effectiveAuth.Method
+            $displayMethod = $Method
             Write-GuiConsole -Message "Get-WindowsDeviceLinkStatus -Online -Method $displayMethod" -Command
             $cloudResults = @(Invoke-GuiInformationCommand -ScriptBlock {
-                Get-WindowsDeviceLinkStatus @statusParameters
+                Get-WindowsDeviceLinkStatusCore @statusParameters
             })
             $cloud = $cloudResults | Select-Object -Last 1
             Write-GuiObject $cloud
@@ -2048,7 +2011,7 @@ function Show-WindowsDeviceLink {
 
                 Write-GuiConsole -Message "Remove-WindowsDeviceLinkAssociation -Method $displayMethod" -Command
                 $removeResults = @(Invoke-GuiInformationCommand -ScriptBlock {
-                    Remove-WindowsDeviceLinkAssociation @removeParameters
+                    Remove-WindowsDeviceLinkAssociationCore @removeParameters
                 })
                 $removed = $removeResults | Select-Object -Last 1
                 Write-GuiObject $removed
@@ -2248,7 +2211,6 @@ function Show-WindowsDeviceLink {
         $activityHeight = [Math]::Max(118,$content.ClientSize.Height - $activityCard.Top - 12)
         $activityCard.Height = $activityHeight
         $consoleBox.Height = [Math]::Max(96,$activityHeight - 22)
-
 
         foreach ($row in @($rowTools,$rowExport,$rowOffboard)) {
             $row.Panel.Width = $fullWidth

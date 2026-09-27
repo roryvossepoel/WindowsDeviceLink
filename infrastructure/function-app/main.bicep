@@ -19,17 +19,8 @@ param keyVaultResourceName string = ''
 @description('Optional explicit Application Insights name. When empty, a name is generated from namePrefix.')
 param applicationInsightsName string = ''
 
-@description('Client ID of the multitenant Microsoft Entra application used for Microsoft Graph app-only authentication.')
-param graphClientId string
-
-@description('Allowed target tenant IDs, separated by commas or semicolons. Requests for all other tenants are rejected.')
-param allowedTenantIds string
-
-@description('Optional default tenant ID when the webhook request does not include tenantId.')
-param defaultTenantId string = ''
-
-@description('Optional JSON object mapping tenant IDs to friendly names used by the multitenant lookup endpoint.')
-param tenantNamesJson string = '{}'
+@description('Backend configuration JSON containing tenants and authentication profiles. Credential values are referenced by app-setting name and are never included in this JSON.')
+param backendConfigurationJson string
 
 @description('Credential type used by the Function App for Microsoft Graph app-only authentication.')
 @allowed([
@@ -79,6 +70,8 @@ var backendAuthScript = loadTextContent('../../function-app/shared/BackendAuth.p
 var associationOperationsScript = loadTextContent('../../function-app/shared/AssociationOperations.ps1')
 var reconcileFunctionScript = loadTextContent('../../function-app/Reconcile-WindowsDeviceLink/run.ps1')
 var reconcileFunctionConfigText = loadTextContent('../../function-app/Reconcile-WindowsDeviceLink/function.json')
+var offboardFunctionScript = loadTextContent('../../function-app/Offboard-WindowsDeviceLink/run.ps1')
+var offboardFunctionConfigText = loadTextContent('../../function-app/Offboard-WindowsDeviceLink/function.json')
 
 resource storage 'Microsoft.Storage/storageAccounts@2023-05-01' = {
   name: effectiveStorageName
@@ -193,41 +186,21 @@ resource functionApp 'Microsoft.Web/sites@2024-04-01' = {
           value: appInsights.properties.ConnectionString
         }
         {
-          name: 'WINDOWSDEVICELINK_CLIENT_ID'
-          value: graphClientId
-        }
-        {
-          name: 'WINDOWSDEVICELINK_ALLOWED_TENANTS'
-          value: allowedTenantIds
-        }
-        {
-          name: 'WINDOWSDEVICELINK_DEFAULT_TENANT_ID'
-          value: defaultTenantId
-        }
-        {
-          name: 'WINDOWSDEVICELINK_TENANT_NAMES_JSON'
-          value: tenantNamesJson
+          name: 'WINDOWSDEVICELINK_CONFIGURATION_JSON'
+          value: backendConfigurationJson
         }
         {
           name: 'WINDOWSDEVICELINK_API_KEY'
           value: '@Microsoft.KeyVault(SecretUri=${apiKeySecret.properties.secretUriWithVersion})'
         }
         {
-          name: 'WINDOWSDEVICELINK_CERTIFICATE_PFX_BASE64'
-          value: graphCredentialType == 'Certificate'
-            ? '@Microsoft.KeyVault(SecretUri=${graphCredentialSecret.properties.secretUriWithVersion})'
-            : ''
+          name: 'WINDOWSDEVICELINK_GRAPH_CREDENTIAL'
+          value: '@Microsoft.KeyVault(SecretUri=${graphCredentialSecret.properties.secretUriWithVersion})'
         }
         {
-          name: 'WINDOWSDEVICELINK_CERTIFICATE_PASSWORD'
+          name: 'WINDOWSDEVICELINK_GRAPH_CERTIFICATE_PASSWORD'
           value: graphCredentialType == 'Certificate' && !empty(graphCertificatePassword)
             ? '@Microsoft.KeyVault(SecretUri=${graphCertificatePasswordSecret.properties.secretUriWithVersion})'
-            : ''
-        }
-        {
-          name: 'WINDOWSDEVICELINK_CLIENT_SECRET'
-          value: graphCredentialType == 'ClientSecret'
-            ? '@Microsoft.KeyVault(SecretUri=${graphCredentialSecret.properties.secretUriWithVersion})'
             : ''
         }
       ]
@@ -321,10 +294,30 @@ resource tenantCatalogFunction 'Microsoft.Web/sites/functions@2024-04-01' = {
   ]
 }
 
+resource offboardFunction 'Microsoft.Web/sites/functions@2024-04-01' = {
+  parent: functionApp
+  name: 'Offboard-WindowsDeviceLink'
+  properties: {
+    language: 'powershell'
+    isDisabled: false
+    config: json(offboardFunctionConfigText)
+    files: {
+      'function.json': offboardFunctionConfigText
+      'run.ps1': offboardFunctionScript
+      'BackendAuth.ps1': backendAuthScript
+      'AssociationOperations.ps1': associationOperationsScript
+    }
+  }
+  dependsOn: [
+    keyVaultSecretsUser
+  ]
+}
+
 output functionAppName string = functionApp.name
 output functionEndpoint string = 'https://${functionApp.properties.defaultHostName}/api/devicelink/preassociate'
 output lookupEndpoint string = 'https://${functionApp.properties.defaultHostName}/api/devicelink/lookup'
 output reconcileEndpoint string = 'https://${functionApp.properties.defaultHostName}/api/devicelink/reconcile'
 output tenantCatalogEndpoint string = 'https://${functionApp.properties.defaultHostName}/api/devicelink/tenants'
+output offboardEndpoint string = 'https://${functionApp.properties.defaultHostName}/api/devicelink/offboard'
 output keyVaultName string = keyVault.name
 output applicationInsightsName string = appInsights.name

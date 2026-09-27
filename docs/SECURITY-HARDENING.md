@@ -12,7 +12,7 @@ WindowsDeviceLink provides:
 - API-key support;
 - explicit tenant routing;
 - minimal Microsoft Graph permissions;
-- app-only authentication examples;
+- backend-side application authentication;
 - secret-safe logging behavior;
 - a reference Azure Function deployment;
 - documented single-tenant and multitenant identity patterns.
@@ -62,6 +62,16 @@ TenantId
 
 Neither replaces Microsoft Graph authentication.
 
+## Recommended network restriction
+
+For the API route, allow only the public NAT/egress IP addresses of trusted provisioning
+networks and deny other sources. Apply equivalent access controls to any bootstrap or
+credential distribution endpoint. Network restrictions supplement the API key.
+
+The reference backend checks `WINDOWSDEVICELINK_API_KEY` using the
+`X-WindowsDeviceLink-Key` header. This is a custom application key, not an Azure
+Function platform key; use the correct rotation mechanism for your deployment.
+
 ## Optional organization-specific hardening
 
 Organizations can add additional controls without changing the WindowsDeviceLink webhook schema.
@@ -70,7 +80,7 @@ Examples include:
 
 - Private Endpoints;
 - public network access disabled;
-- IP/subnet access restrictions;
+- additional subnet access controls;
 - VNet integration;
 - API Management;
 - reverse proxy/WAF controls;
@@ -98,3 +108,7 @@ mandatory production architecture
 Use the template as a baseline, review it, and harden or replace it according to your organization's standards.
 
 WindowsDeviceLink should remain focused on Device Association rather than becoming a general-purpose Azure security framework.
+
+For current Direct and Backend routes and deployment recommendations, see
+[Authentication security](AUTHENTICATION-SECURITY.md). Bootstrap and key rotation
+services are outside module scope.

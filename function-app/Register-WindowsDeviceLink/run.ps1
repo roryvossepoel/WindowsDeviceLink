@@ -96,7 +96,11 @@ catch {
 
 $tenantId = ([string]$body.tenantId).Trim().ToLowerInvariant()
 if ([string]::IsNullOrWhiteSpace($tenantId)) {
-    $tenantId = ([string][Environment]::GetEnvironmentVariable('WINDOWSDEVICELINK_DEFAULT_TENANT_ID')).Trim().ToLowerInvariant()
+    try { $tenantId = ([string](Get-WindowsDeviceLinkBackendConfiguration).DefaultTenantId).Trim().ToLowerInvariant() }
+    catch {
+        Write-JsonResponse -StatusCode 500 -Body @{ success=$false; requestId=$requestId; error='BackendConfigurationError'; message=$_.Exception.Message }
+        return
+    }
 }
 if ([string]::IsNullOrWhiteSpace($tenantId)) {
     Write-JsonResponse -StatusCode 400 -Body @{
@@ -142,22 +146,11 @@ if ($tenantId -notin $allowedTenants) {
     return
 }
 
-$clientId = [Environment]::GetEnvironmentVariable('WINDOWSDEVICELINK_CLIENT_ID')
-if ([string]::IsNullOrWhiteSpace($clientId)) {
-    Write-JsonResponse -StatusCode 500 -Body @{
-        success = $false
-        requestId = $requestId
-        error = 'BackendConfigurationError'
-        message = 'WINDOWSDEVICELINK_CLIENT_ID is not configured.'
-    }
-    return
-}
-
 $serialNumber = ([string]$body.device.serialNumber).Trim()
 $deviceLink = [string]$body.device.deviceLink
 
 try {
-    $before = Get-WindowsDeviceLinkTenantAssociation -TenantId $tenantId -SerialNumber $serialNumber -ClientId $clientId
+    $before = Get-WindowsDeviceLinkTenantAssociation -TenantId $tenantId -SerialNumber $serialNumber
 }
 catch {
     Write-Warning "DeviceLink pre-association lookup failed. RequestId=$requestId TenantId=$tenantId ErrorType=$($_.Exception.GetType().Name)"
@@ -197,7 +190,7 @@ finally {
 }
 
 try {
-    $verify = Get-WindowsDeviceLinkTenantAssociation -TenantId $tenantId -SerialNumber $serialNumber -ClientId $clientId
+    $verify = Get-WindowsDeviceLinkTenantAssociation -TenantId $tenantId -SerialNumber $serialNumber
 }
 catch {
     Write-Warning "DeviceLink post-create verification failed. RequestId=$requestId TenantId=$tenantId ErrorType=$($_.Exception.GetType().Name)"

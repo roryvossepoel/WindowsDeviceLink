@@ -27,14 +27,11 @@ if ($command.Parameters.ContainsKey('WhatIf') -or $command.Parameters.ContainsKe
 if (-not $command.Parameters.ContainsKey('Method')) {
     throw 'FAIL: Show-WindowsDeviceLink must expose -Method.'
 }
-if (-not $command.Parameters.ContainsKey('Tenants')) {
-    throw 'FAIL: Show-WindowsDeviceLink must expose -Tenants.'
+if (-not $command.Parameters.ContainsKey('Configuration') -or $command.Parameters['Configuration'].ParameterType -ne [string]) {
+    throw 'FAIL: Show-WindowsDeviceLink must expose one string Configuration parameter.'
 }
-if (-not $command.Parameters.ContainsKey('TenantsUri')) {
-    throw 'FAIL: Show-WindowsDeviceLink must expose -TenantsUri.'
-}
-if (-not $command.Parameters.ContainsKey('TenantsPath')) {
-    throw 'FAIL: Show-WindowsDeviceLink must expose -TenantsPath.'
+foreach ($oldParameter in @('Tenants','TenantsUri','TenantsPath')) {
+    if ($command.Parameters.ContainsKey($oldParameter)) { throw "FAIL: Obsolete parameter $oldParameter remains." }
 }
 if (-not $command.Parameters.ContainsKey('WindowsManagementServicePath')) {
     throw 'FAIL: Show-WindowsDeviceLink must expose -WindowsManagementServicePath for Windows PE runtime selection.'
@@ -45,13 +42,6 @@ foreach ($parameterName in @('BackendUri','BackendApiKey','ViewMode')) {
 if ($command.Parameters['BackendApiKey'].ParameterType -ne [securestring]) {
     throw 'FAIL: Show-WindowsDeviceLink -BackendApiKey must be SecureString.'
 }
-if ($command.Parameters['Tenants'].ParameterType -ne [hashtable]) {
-    throw 'FAIL: Show-WindowsDeviceLink -Tenants must remain a hashtable.'
-}
-if ($command.Parameters['TenantsUri'].ParameterType -ne [uri]) {
-    throw 'FAIL: Show-WindowsDeviceLink -TenantsUri must remain a URI.'
-}
-
 $methodParameter = $command.Parameters['Method']
 $validateSet = @($methodParameter.Attributes | Where-Object { $_ -is [System.Management.Automation.ValidateSetAttribute] } | Select-Object -First 1)
 if (-not $validateSet -or 'Interactive' -notin $validateSet.ValidValues) {
@@ -88,9 +78,10 @@ foreach ($required in @(
     'MiniNT',
     'Get-GuiRuntimeParameters',
     'Set-GuiCapabilities',
-    'TenantsUri',
-    'TenantsPath',
-    'Get-WindowsDeviceLinkTenantCatalog',
+    'Configuration',
+    'Get-SelectedClientId',
+    'fixedConfigurationTenantId',
+    'Read-WindowsDeviceLinkConfiguration',
     'WindowsManagementServicePath',
     'Windows PE',
     'Association is not available in Windows PE',
@@ -167,7 +158,7 @@ foreach ($required in @(
     'the in-memory token will be reused for cloud actions.',
     'Target tenant changed; sign in again to create a Direct-mode session for the selected tenant.',
     'Select a target tenant before signing in or performing a cloud action.',
-    'Direct mode uses either one explicit -TenantId or a tenant catalog; do not combine them.',
+    '-Configuration cannot be combined with Backend mode, -TenantId or -ClientId. Put Direct tenant/client choices in the configuration.',
     '$hasDirectTenantCatalog',
     '$showTenantSelector',
     'Sign in to select the destination tenant.',

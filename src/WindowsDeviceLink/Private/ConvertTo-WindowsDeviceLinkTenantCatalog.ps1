@@ -5,59 +5,60 @@ function ConvertTo-WindowsDeviceLinkTenantCatalog {
         [Parameter(Mandatory)][ValidateNotNullOrEmpty()][string]$Source
     )
 
-    if ($InputObject -is [System.Array]) {
-        throw "The tenant catalog from '$Source' must be a JSON object that maps friendly names to tenant GUIDs."
+    function Assert-Fields {
+        param($Object,[string[]]$Allowed,[string]$Location)
+        if ($Object -isnot [pscustomobject]) { throw "$Location must be a JSON object." }
+        foreach ($field in $Object.PSObject.Properties.Name) {
+            if ($field -cnotin $Allowed) { throw "$Location contains an unsupported field. Only $($Allowed -join ', ') are allowed; do not include secrets." }
+        }
+    }
+    function Get-ConfigurationGuid {
+        param($Value,[string]$Field)
+        $parsed = [guid]::Empty
+        if ($Value -isnot [string] -or -not [guid]::TryParse($Value,[ref]$parsed) -or $parsed -eq [guid]::Empty) {
+            throw "$Field must be a non-empty GUID string."
+        }
+        $parsed.ToString().ToLowerInvariant()
     }
 
-    $entries = @()
+    Assert-Fields $InputObject @('schemaVersion','mode','clientId','tenants') 'Configuration'
+    if ($InputObject.schemaVersion -isnot [int] -and $InputObject.schemaVersion -isnot [long]) { throw 'schemaVersion must be the integer 1.' }
+    if ($InputObject.schemaVersion -ne 1) { throw 'Unsupported configuration schemaVersion. Expected 1.' }
+    if ($InputObject.mode -isnot [string] -or $InputObject.mode -cne 'Direct') { throw 'Configuration mode must be Direct. Backend obtains its catalog from the API.' }
+    if ($InputObject.tenants -isnot [array] -or $InputObject.tenants.Count -eq 0) { throw 'tenants must be a non-empty JSON array.' }
+
+    $sharedClientId = $null
+    if ('clientId' -in $InputObject.PSObject.Properties.Name) {
+        $sharedClientId = Get-ConfigurationGuid $InputObject.clientId 'clientId'
+    }
     $seenNames = @{}
     $seenIds = @{}
-
-    if ($InputObject -is [System.Collections.IDictionary]) {
-        $pairs = foreach ($key in $InputObject.Keys) {
-            [pscustomobject]@{ Name=[string]$key; Value=$InputObject[$key] }
+    $entries = foreach ($tenant in $InputObject.tenants) {
+        Assert-Fields $tenant @('name','tenantId','clientId') 'Tenant entry'
+        if ($tenant.name -isnot [string] -or [string]::IsNullOrWhiteSpace($tenant.name) -or
+            $tenant.name.Trim().Length -gt 128 -or $tenant.name -match '[\x00-\x1f\x7f]') {
+            throw 'Each tenant name must contain 1 to 128 characters without control characters.'
         }
-    }
-    else {
-        $pairs = foreach ($property in @($InputObject.PSObject.Properties)) {
-            [pscustomobject]@{ Name=[string]$property.Name; Value=$property.Value }
+        $name = $tenant.name.Trim()
+        $id = Get-ConfigurationGuid $tenant.tenantId 'tenantId'
+        if ($seenNames.ContainsKey($name)) { throw 'Tenant names must be unique (case-insensitive).' }
+        if ($seenIds.ContainsKey($id)) { throw 'Tenant IDs must be unique.' }
+        $seenNames[$name] = $true
+        $seenIds[$id] = $true
+        $clientId = $sharedClientId
+        if ('clientId' -in $tenant.PSObject.Properties.Name) {
+            $clientId = Get-ConfigurationGuid $tenant.clientId 'Tenant clientId'
         }
-    }
-
-    foreach ($pair in @($pairs)) {
-        $name = [string]$pair.Name
-        $value = [string]$pair.Value
-        $parsed = [guid]::Empty
-        if ([string]::IsNullOrWhiteSpace($name) -or
-            [string]::IsNullOrWhiteSpace($value) -or
-            -not [guid]::TryParse($value.Trim(),[ref]$parsed)) {
-            throw "Invalid tenant entry '$name' in '$Source'. Each value must be a tenant GUID."
-        }
-
-        $normalizedName = $name.Trim()
-        $normalizedId = $parsed.ToString().ToLowerInvariant()
-        $nameKey = $normalizedName.ToLowerInvariant()
-        if ($seenNames.ContainsKey($nameKey)) {
-            throw "Tenant name '$normalizedName' occurs more than once in '$Source'."
-        }
-        if ($seenIds.ContainsKey($normalizedId)) {
-            throw "Tenant ID '$normalizedId' occurs more than once in '$Source'."
-        }
-        $seenNames[$nameKey] = $true
-        $seenIds[$normalizedId] = $true
-
-        $entry = [pscustomobject]@{
-            Name=$normalizedName
-            TenantId=$normalizedId
+        [pscustomobject]@{
+            PSTypeName='Windows.DeviceLink.TenantCatalogEntry'
+            Name=$name
+            TenantId=$id
+            ClientId=$clientId
             Source=$Source
             OperationMode='Direct'
             Enabled=$true
             Capabilities=@('Lookup','Register')
         }
-        $entry.PSObject.TypeNames.Insert(0,'Windows.DeviceLink.TenantCatalogEntry')
-        $entries += $entry
     }
-
-    if ($entries.Count -eq 0) { throw "The tenant catalog from '$Source' is empty." }
-    @($entries | Sort-Object Name)
+    $entries | Sort-Object Name
 }

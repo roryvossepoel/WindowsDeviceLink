@@ -37,13 +37,6 @@ $invalidAccount=& $module { Resolve-WindowsDeviceLinkTokenAccountName -Token 'no
 Assert-True ([string]::IsNullOrWhiteSpace([string]$invalidAccount)) 'token account-name helper must fail closed for malformed tokens.'
 Write-Host 'PASS: token account-name metadata extraction'
 
-$clientSecretMarker='WDL-CLIENT-SECRET-MARKER'
-$secureClientSecret=ConvertTo-SecureString $clientSecretMarker -AsPlainText -Force
-$clientSecretRequest={param($Uri,$Body)throw "Synthetic OAuth failure containing $($Body.client_secret)"}
-Assert-Throws -Name 'Client-secret transport error is redacted' -ExpectedMessage 'Client-secret authentication failed' -ForbiddenText @($clientSecretMarker) -ScriptBlock {
-    & $module {param($Secret,$Request) Get-WindowsDeviceLinkClientSecretToken -TenantId 'tenant-test' -ClientId 'client-test' -ClientSecret $Secret -RequestScript $Request} $secureClientSecret $clientSecretRequest
-}
-
 $deviceCodeMarker='WDL-DEVICE-CODE-SECRET'
 $deviceCodeRequest={
     param($Stage,$Uri,$Body)
@@ -82,23 +75,6 @@ Assert-Throws -Name 'Graph registration redacts token and DeviceLink payload' -E
         Invoke-WindowsDeviceLinkGraphRegistration -InputObject $input -AccessToken $Token -TenantId 'tenant-test' -RequestScript $Request
     } $registrationPayload $registrationRequest $registrationToken
 }
-
-Assert-Throws -Name 'Register AccessToken requires token' -ExpectedMessage '-AccessToken is required for -Method AccessToken' -ScriptBlock {
-    & $module {
-        $input=[pscustomobject]@{SerialNumber='TEST-SERIAL';DeviceLink='TEST-PAYLOAD'}
-        $input.PSObject.TypeNames.Insert(0,'Windows.DeviceLink.Information')
-        $input | Register-WindowsDeviceLink -Method AccessToken -TenantId 'tenant-test'
-    }
-}
-Assert-Throws -Name 'Lookup Certificate requires certificate object' -ExpectedMessage '-TenantId, -ClientId, and -Certificate are required' -ScriptBlock { Get-WindowsDeviceLinkAssociation -SerialNumber 'TEST-SERIAL' -Method Certificate -TenantId 'tenant-test' -ClientId 'client-test' }
-Assert-Throws -Name 'Lookup CertificateThumbprint requires thumbprint' -ExpectedMessage '-TenantId, -ClientId, and -CertificateThumbprint are required' -ScriptBlock { Get-WindowsDeviceLinkAssociation -SerialNumber 'TEST-SERIAL' -Method CertificateThumbprint -TenantId 'tenant-test' -ClientId 'client-test' }
-Assert-Throws -Name 'Lookup CertificateSubjectName requires subject' -ExpectedMessage '-TenantId, -ClientId, and -CertificateSubjectName are required' -ScriptBlock { Get-WindowsDeviceLinkAssociation -SerialNumber 'TEST-SERIAL' -Method CertificateSubjectName -TenantId 'tenant-test' -ClientId 'client-test' }
-Assert-Throws -Name 'ManagedIdentity rejects TenantId' -ExpectedMessage 'not valid with -Method ManagedIdentity' -ScriptBlock { Get-WindowsDeviceLinkAssociation -SerialNumber 'TEST-SERIAL' -Method ManagedIdentity -TenantId 'tenant-test' }
-
-$envNames=@('AZURE_TENANT_ID','AZURE_CLIENT_ID','AZURE_CLIENT_SECRET');$saved=@{}
-foreach($name in $envNames){$saved[$name]=[Environment]::GetEnvironmentVariable($name);[Environment]::SetEnvironmentVariable($name,$null)}
-try { Assert-Throws -Name 'EnvironmentVariable reports missing names safely' -ExpectedMessage 'AZURE_TENANT_ID' -ScriptBlock { Get-WindowsDeviceLinkAssociation -SerialNumber 'TEST-SERIAL' -Method EnvironmentVariable } }
-finally { foreach($name in $envNames){[Environment]::SetEnvironmentVariable($name,$saved[$name])} }
 
 Write-Host ''
 Write-Host 'Authentication and secret-handling regression set passed.'

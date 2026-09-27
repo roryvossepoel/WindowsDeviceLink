@@ -1,6 +1,10 @@
 # WindowsDeviceLink validation matrix
 
-Last updated: 2026-09-25
+Last updated: 2026-09-26
+
+The table below records earlier hardware validation, not a fresh 0.11 hardware certification.
+Before releasing 0.11, repeat Interactive sign-in/retry, DeviceCode sign-in/refresh/sign-out,
+Direct pre-association/removal, and Backend assignment/offboarding in Windows and WinPE.
 
 The primary Windows Autopilot Device Preparation Device Association workflow has been validated on physical AMD64 hardware across Windows 11 and AMD64 Windows PE.
 
@@ -16,12 +20,6 @@ The primary Windows Autopilot Device Preparation Device Association workflow has
 | CSV accepted by Intune | Pass | Pass |
 | Export to directory / root | Pass | Pass |
 | Device-code authentication | Pass | Pass |
-| Client-secret authentication | Pass | Pass |
-| Existing access token | Pass | Pass |
-| Environment-variable authentication | Pass | Pass |
-| Certificate object | Pass | Pass |
-| Certificate thumbprint | Pass | Pass |
-| Certificate subject name | Pass | Pass |
 | Device Association lookup: no match | Pass | Pass via status lookup |
 | Device Association lookup by serial number | Pass | Pass via status lookup |
 | Device Association lookup by association ID | Pass | Not repeated |
@@ -147,9 +145,14 @@ The parameter regression suite passed, including validation that:
 - webhook registration requires `WebhookUri` and rejects cloud-only authentication inputs;
 - delegated `Interactive` and `DeviceCode` authentication can omit `TenantId`; `DeviceCode` defaults to the `organizations` authority;
 - Device Association lookup requires exactly one selector;
-- ClientSecret operations require the complete credential input set.
 
-Validated authentication methods continue to cover DeviceCode, Interactive, ClientSecret, AccessToken, Certificate, CertificateThumbprint, CertificateSubjectName, EnvironmentVariable and ManagedIdentity where applicable. Webhook registration remains an explicit `Register-WindowsDeviceLink -Method Webhook` operation.
+The 0.11 Direct surface supports Interactive and DeviceCode only. Backend and low-level Webhook use API authentication. App-only and public AccessToken routes are rejected; internal delegated token reuse remains covered by regression tests.
+
+Backend configuration regression tests cover a shared multitenant application profile,
+separate certificate/client-secret profiles, tenant-specific token acquisition, and a
+Move whose source and target use different profiles. Live validation is required only
+for the shared multitenant application route; isolated per-tenant applications are
+validated with mocked identity and Graph transports.
 
 
 
@@ -165,7 +168,7 @@ Validated GUI behavior includes:
 - module version and Preview status in the window title;
 - Windows 11 environment display;
 - local firmware / tenant-correlation display;
-- tenant selector with friendly names supplied through `-Tenants`;
+- tenant selector with friendly names (the new Configuration schema still needs live UI validation);
 - default `Interactive` authentication and alternate `-Method` contract;
 - online cloud-state refresh;
 - CSV export;
@@ -367,3 +370,13 @@ preview backend delivery route; the Bicep/ARM Deploy to Azure path remains exper
 - Harden and validate the experimental Bicep/ARM Deploy to Azure route tracked in issue #43.
 - Additional Windows 11 / WinPE builds and OEMs/models.
 - Non-Global Microsoft clouds.
+
+## Configuration validation (0.11 preview)
+
+Offline checks cover JSON file/HTTPS/inline loading, strict schema validation, duplicate
+names and IDs, clientId precedence, conflicting parameters, single-tenant fixed labels,
+multitenant selection and client routing for Interactive/DeviceCode.
+
+Live UI checks before release: fixed tenant name before/after sign-in and sign-out;
+switch tenants after sign-out; verify the shared/overridden client app and authenticated
+tenant; repeat DeviceCode in WinPE. Backend catalog behavior must remain unchanged.

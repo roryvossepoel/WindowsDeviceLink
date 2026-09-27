@@ -24,8 +24,8 @@ $secureKey = ConvertTo-SecureString $apiMarker -AsPlainText -Force
     $script:DirectTenant = $null
     $script:DirectMethod = $null
 
-    function script:Initialize-WindowsDeviceLink {
-        param($Method,$TenantId,$ClientId,$AccessToken,$Certificate,$CertificateThumbprint,$CertificateSubjectName,$SendCertificateChain,$ClientSecret,$Environment,$ClientTimeout,$TimeoutSeconds,$WindowsManagementServicePath)
+    function script:Initialize-WindowsDeviceLinkCore {
+        param($Method,$TenantId,$ClientId,$AccessToken,$Environment,$ClientTimeout,$TimeoutSeconds,$WindowsManagementServicePath)
         $script:DirectTenant=$TenantId
         $script:DirectMethod=$Method
         $effectiveTenant = if ($TenantId) { $TenantId } else { '33333333-3333-3333-3333-333333333333' }
@@ -94,7 +94,7 @@ $common = @{ BackendUri='https://example.test/api/devicelink'; BackendApiKey=$se
 $sourceAllowsEmpty = & $module {
     $decisionAllowsEmpty = @((Get-Command Resolve-WindowsDeviceLinkTenantAssignmentDecision).Parameters['SourceTenantId'].Attributes |
         Where-Object { $_ -is [System.Management.Automation.AllowEmptyStringAttribute] }).Count -eq 1
-    $setSource = (Get-Command Set-WindowsDeviceLinkTenant).ScriptBlock.ToString()
+    $setSource = (Get-Command Set-WindowsDeviceLinkTenantCore).ScriptBlock.ToString()
     $reconcileSourceIsConditional = $setSource -match '(?s)if \(-not \[string\]::IsNullOrWhiteSpace\(\$sourceId\)\).*reconcileParameters\.SourceTenantId'
     $decisionAllowsEmpty -and $reconcileSourceIsConditional
 }

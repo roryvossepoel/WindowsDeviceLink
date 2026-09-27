@@ -90,16 +90,10 @@ See [APP-REGISTRATION.md](APP-REGISTRATION.md) and [MULTITENANT-CONSENT.md](MULT
 
 ## Backend settings
 
-The Function uses application settings including:
-
-- `WINDOWSDEVICELINK_API_KEY`
-- `WINDOWSDEVICELINK_CLIENT_ID`
-- `WINDOWSDEVICELINK_ALLOWED_TENANTS`
-- `WINDOWSDEVICELINK_DEFAULT_TENANT_ID` (optional)
-- `WINDOWSDEVICELINK_TENANT_NAMES_JSON` (optional)
-- `WINDOWSDEVICELINK_CERTIFICATE_PFX_BASE64` (preferred Graph credential)
-- `WINDOWSDEVICELINK_CERTIFICATE_PASSWORD` (optional)
-- `WINDOWSDEVICELINK_CLIENT_SECRET` (fallback)
+The Function uses `WINDOWSDEVICELINK_API_KEY` for client-to-backend authentication and
+`WINDOWSDEVICELINK_CONFIGURATION_JSON` for the tenant and authentication-profile map.
+Each profile references a Key Vault-backed application setting containing its PFX or
+client secret. See [BACKEND-CONFIGURATION.md](BACKEND-CONFIGURATION.md).
 
 ## Function-backed initialization
 
@@ -233,3 +227,10 @@ restrictions, API Management, VNet integration, WAF/reverse proxy controls and S
 forwarding without changing the WindowsDeviceLink request contract.
 
 See [SECURITY-HARDENING.md](SECURITY-HARDENING.md).
+
+## Deployment hardening
+
+Restrict API access to trusted provisioning-network egress IP addresses and deny other
+sources. Supply API keys at runtime, never in WinPE images. Protect any credential
+distribution endpoint too. Key rotation and bootstrap infrastructure remain the
+organization's responsibility. See [security recommendations](AUTHENTICATION-SECURITY.md).

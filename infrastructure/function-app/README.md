@@ -10,6 +10,12 @@ This folder contains the infrastructure-as-code for the WindowsDeviceLink Azure 
 
 The Bicep deployment uses `loadTextContent()` to embed the committed Function receiver files at deployment time.
 
+`backendConfigurationJson` supplies the non-secret tenant/authentication-profile map.
+The reference template provisions one shared Key Vault-backed credential as
+`WINDOWSDEVICELINK_GRAPH_CREDENTIAL`; the JSON profile must reference that setting and
+select the matching `graphCredentialType`. Extra per-tenant profiles require additional
+Key Vault-backed Function App settings with names beginning `WINDOWSDEVICELINK_GRAPH_`.
+
 ## Experimental status
 
 The Bicep/ARM route is not a supported deployment method for `0.10.0-preview1`. Use the

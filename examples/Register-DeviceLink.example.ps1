@@ -23,14 +23,7 @@ Get-WindowsDeviceLinkAssociation `
     -Method DeviceCode `
     -TenantId '<tenant-id>' | Format-List *
 
-# App-only registration example with a client secret
-$secret = Read-Host 'Client secret' -AsSecureString
-$deviceLink | Register-WindowsDeviceLink `
-    -Method ClientSecret `
-    -TenantId '<tenant-id>' `
-    -ClientId '<app-id>' `
-    -ClientSecret $secret
-
+# For unattended execution, use the Backend API route. Supply its key at runtime.
 # Webhook registration. TenantId is optional and can be used for multi-tenant routing.
 $webhookKey = $env:WINDOWSDEVICELINK_WEBHOOK_API_KEY
 $deviceLink | Register-WindowsDeviceLink `

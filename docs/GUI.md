@@ -34,8 +34,7 @@ performs its own fresh cloud check before changing state.
 Diagnostic, export, recovery, and offboarding actions are available in the same view.
 
 Backend mode and Direct-mode Graph authentication are deliberately separate. Do not combine
-`-BackendUri`/`-BackendApiKey` with `-Method`, `-Tenants`, `-TenantsUri`, or
-`-TenantsPath`.
+`-BackendUri`/`-BackendApiKey` with `-Method` or `-Configuration`.
 
 In Direct mode, use either one explicit `-TenantId` or one of the tenant-catalog
 parameters. Combining an explicit tenant with a catalog is rejected because it would
@@ -81,13 +80,6 @@ Select an authentication method with `-Method`.
 |---|---|
 | `Interactive` | Optional `-TenantId`, optional `-ClientId` |
 | `DeviceCode` | Optional `-TenantId`, optional `-ClientId` |
-| `ClientSecret` | `-TenantId`, `-ClientId`, `-ClientSecret` |
-| `AccessToken` | `-AccessToken`; `-TenantId` can be supplied when needed |
-| `Certificate` | `-TenantId`, `-ClientId`, `-Certificate`; optional `-SendCertificateChain` |
-| `CertificateThumbprint` | `-TenantId`, `-ClientId`, `-CertificateThumbprint`; optional `-SendCertificateChain` |
-| `CertificateSubjectName` | `-TenantId`, `-ClientId`, `-CertificateSubjectName`; optional `-SendCertificateChain` |
-| `EnvironmentVariable` | Uses the documented Azure/Entra environment variables |
-| `ManagedIdentity` | Optional `-ClientId` for a user-assigned identity |
 
 Examples:
 
@@ -102,16 +94,13 @@ Show-WindowsDeviceLink `
 ```
 
 ```powershell
-$secret = Read-Host 'Client secret' -AsSecureString
-
-Show-WindowsDeviceLink `
-    -Method ClientSecret `
-    -TenantId '<tenant-id>' `
-    -ClientId '<client-id>' `
-    -ClientSecret $secret
+$apiKey = Read-Host 'Backend API key' -AsSecureString
+Show-WindowsDeviceLink -BackendUri 'https://backend.example.com/api/devicelink' -BackendApiKey $apiKey
 ```
 
-The GUI uses the existing WindowsDeviceLink authentication helpers and public cmdlets.
+For unattended operation use Backend mode. See the [hardening recommendations](AUTHENTICATION-SECURITY.md).
+
+The GUI uses the existing WindowsDeviceLink authentication helpers and shared lifecycle implementations.
 It adds only session-scoped orchestration so an operator does not need to repeat the
 same DeviceCode sign-in for every action.
 
@@ -146,72 +135,24 @@ No selector is shown for this single-target route. When no explicit tenant or te
 catalog is supplied, no selector is shown either and the authenticated Microsoft Entra
 context is authoritative.
 
-### Friendly tenant list
-
-This mode does not require a Function App. The list only supplies display names and
-tenant IDs; authentication and Graph actions still use the selected direct method.
-The operator must select one tenant before signing in. Changing the selection clears
-the current GUI authentication session and requires a new sign-in for the new tenant.
+### Configuration: one or multiple tenants
 
 ```powershell
-Show-WindowsDeviceLink -Tenants @{
-    'Tenant Alpha' = '11111111-1111-1111-1111-111111111111'
-    'Tenant Beta' = '22222222-2222-2222-2222-222222222222'
-    'Tenant Gamma' = '33333333-3333-3333-3333-333333333333'
-}
+Show-WindowsDeviceLink -Configuration 'E:\Config\devicelink.json'
+Show-WindowsDeviceLink -Configuration 'https://config.example.com/devicelink.json'
+# Inline JSON here-string text is accepted by the same parameter.
+Show-WindowsDeviceLink -Configuration $config
 ```
 
-### Local JSON
+One configured tenant shows a fixed friendly name with Sign in / Sign out. Multiple
+entries show a tenant selector. A tenant's clientId overrides the shared clientId;
+if neither is present, the standard authentication client is used. All Direct flows
+still require operator authentication in the selected tenant.
 
-```powershell
-Show-WindowsDeviceLink `
-    -TenantsPath 'E:\Config\tenants.json'
-```
-
-### HTTPS JSON
-
-```powershell
-Show-WindowsDeviceLink `
-    -TenantsUri 'https://config.example.com/windowsdevicelink/tenants.json'
-```
-
-Both JSON options use the same simple schema:
-
-```json
-{
-  "Tenant Alpha": "11111111-1111-1111-1111-111111111111",
-  "Tenant Beta": "22222222-2222-2222-2222-222222222222",
-  "Tenant Gamma": "33333333-3333-3333-3333-333333333333"
-}
-```
-
-`-TenantsUri` accepts only an absolute HTTPS URI. Tenant values must be valid GUIDs. These files should contain names and tenant IDs only; do not store credentials or secrets in them.
-
-When multiple tenant sources are supplied, precedence is:
-
-```text
-TenantsUri -> TenantsPath -> Tenants
-```
-
-Explicit `-Tenants` values therefore have the highest priority for duplicate names.
-
-The same JSON is available to command-line scripts:
-
-```powershell
-$tenant = Get-WindowsDeviceLinkTenantCatalog `
-    -Path 'E:\Config\tenants.json' `
-    -Name 'Tenant Alpha'
-
-Get-WindowsDeviceLinkAssociation `
-    -SerialNumber '<serial-number>' `
-    -Method Interactive `
-    -TenantId $tenant.TenantId
-```
-
-This is tenant selection, not centralized orchestration. Direct mode does not search
-every catalog tenant and cannot safely infer or perform a cross-tenant Move. Select the
-correct tenant explicitly; use Backend mode when lookup and verified moves are
-required.
+See [configuration schema and examples](CONFIGURATION.md) for inline JSON, per-tenant
+app registrations, validation and equivalent CLI usage. Configuration cannot be mixed
+with explicit TenantId or ClientId parameters or with Backend mode. This is tenant
+selection, not cross-tenant lookup or Move orchestration.
 
 ## Windows 11 and Windows PE
 
@@ -244,7 +185,7 @@ The same parameter can be combined with tenant and authentication options:
 ```powershell
 Show-WindowsDeviceLink `
     -WindowsManagementServicePath 'E:\Windows.Management.Service.dll' `
-    -TenantsPath 'E:\Config\tenants.json'
+    -Configuration 'E:\Config\devicelink.json'
 ```
 
 The DLL must come from an administrator-controlled compatible Windows source. See [INSTALLATION.md](INSTALLATION.md) and [WINPE-WORKFLOW.md](WINPE-WORKFLOW.md) for the validated WinPE workflow and support boundary.

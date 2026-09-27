@@ -59,7 +59,7 @@ Assert-Throws -Name 'Register Webhook requires WebhookUri' -ExpectedMessage '-We
 }
 
 $testSecret = ConvertTo-SecureString 'not-a-real-secret' -AsPlainText -Force
-Assert-Throws -Name 'Register Webhook rejects ClientSecret' -ExpectedMessage 'not valid with -Method Webhook' -ScriptBlock {
+Assert-Throws -Name 'Register Webhook rejects ClientSecret' -ExpectedMessage "parameter name 'ClientSecret'" -ScriptBlock {
     $fakeDeviceLink | Register-WindowsDeviceLink -Method Webhook -WebhookUri 'https://example.invalid/' -ClientSecret $testSecret
 }
 
@@ -71,7 +71,7 @@ Assert-Throws -Name 'Association lookup rejects two selectors' -ExpectedMessage 
     Get-WindowsDeviceLinkAssociation -AssociationId 'test-id' -SerialNumber 'TEST-SERIAL' -Method DeviceCode -TenantId '00000000-0000-0000-0000-000000000000'
 }
 
-Assert-Throws -Name 'Association ClientSecret requires all inputs' -ExpectedMessage '-TenantId, -ClientId, and -ClientSecret are required' -ScriptBlock {
+Assert-Throws -Name 'Association rejects ClientSecret method' -ExpectedMessage 'ValidateSet' -ScriptBlock {
     Get-WindowsDeviceLinkAssociation -SerialNumber 'TEST-SERIAL' -Method ClientSecret -TenantId '00000000-0000-0000-0000-000000000000'
 }
 
@@ -87,14 +87,6 @@ foreach ($commandName in @('Register-WindowsDeviceLink','Get-WindowsDeviceLinkAs
     }
 }
 Write-Host 'PASS: DeviceCode supports omitted TenantId and defaults to organizations authority.'
-
-foreach ($commandName in @('Register-WindowsDeviceLink','Get-WindowsDeviceLinkAssociation','Remove-WindowsDeviceLinkAssociation')) {
-    $source = (Get-Command $commandName -Module WindowsDeviceLink).ScriptBlock.ToString()
-    if ($source -match '-TenantId and -AccessToken are required') {
-        throw "FAIL: $commandName still requires TenantId with caller-supplied AccessToken."
-    }
-}
-Write-Host 'PASS: AccessToken authentication does not require TenantId.'
 
 Write-Host ''
 Write-Host 'Cloud-operation parameter validation regression set passed.'

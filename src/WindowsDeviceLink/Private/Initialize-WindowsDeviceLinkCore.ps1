@@ -1,0 +1,339 @@
+function Initialize-WindowsDeviceLinkCore {
+    <#
+    .SYNOPSIS
+    Safely ensures that the local DeviceLink has a tenant-side preassociation and can optionally complete device-side association.
+
+    .DESCRIPTION
+    Orchestrates existing WindowsDeviceLink operations without performing destructive repair.
+    The cmdlet obtains the local DeviceLink, checks the tenant-side Device Association, classifies
+    health, and creates a preassociation only when the validated state is LocalOnly.
+
+    By default, existing preassociated or associated records are left unchanged. Specify
+    -Associate to opt in to association after the state has been verified as
+    Preassociated.
+
+    Direct mode uses the selected Microsoft Graph authentication method. Backend mode uses
+    the WindowsDeviceLink Azure Function App for authoritative multitenant cloud lookup and
+    pre-association, while native association still runs locally on the device.
+
+    Backend mode never performs an implicit tenant move. If the current association is found
+    in a different tenant than -TargetTenantId, initialization is blocked and an explicit
+    tenant-move workflow is required. Completion uses the guarded Complete-WindowsDeviceLinkAssociation cmdlet and
+    therefore performs at most one ConfigureDeviceLinkAsync call, with no retry, reset, cleanup,
+    cloud deletion, or reboot.
+
+    Unexpected, incomplete, unsupported, or unknown states are blocked rather than repaired
+    automatically.
+
+    For DeviceCode authentication, one token is acquired at the start and reused for lookup,
+    registration, and verification so one initialization run requires only one device-code sign-in.
+
+    This cmdlet never resets firmware state, removes an association, or reboots the device.
+    #>
+    [CmdletBinding(DefaultParameterSetName = 'Direct', SupportsShouldProcess, ConfirmImpact = 'Medium')]
+    param(
+        [Parameter(Mandatory, ParameterSetName = 'Direct')]
+        [ValidateSet('DeviceCode','Interactive','AccessToken')]
+        [string]$Method,
+        [Parameter(ParameterSetName = 'Direct')][ValidateNotNullOrEmpty()][string]$TenantId,
+        [Parameter(ParameterSetName = 'Direct')][ValidateNotNullOrEmpty()][string]$ClientId,
+        [Parameter(ParameterSetName = 'Direct')][securestring]$AccessToken,
+        [Parameter(Mandatory, ParameterSetName = 'Backend')]
+        [ValidateNotNull()]
+        [uri]$BackendUri,
+        [Parameter(Mandatory, ParameterSetName = 'Backend')]
+        [ValidateNotNullOrEmpty()]
+        [string]$BackendApiKey,
+        [Parameter(Mandatory, ParameterSetName = 'Backend')]
+        [guid]$TargetTenantId,
+        [Parameter(ParameterSetName = 'Direct')][ValidateNotNullOrEmpty()][string]$Environment = 'Global',
+        [Parameter(ParameterSetName = 'Direct')][ValidateRange(1, 600)][double]$ClientTimeout = 100,
+        [ValidateNotNullOrEmpty()][string]$WindowsManagementServicePath,
+        [ValidateRange(5, 600)][int]$TimeoutSeconds = 120,
+        [switch]$Associate
+    )
+
+    if ($PSCmdlet.ParameterSetName -eq 'Backend') {
+        $targetTenant = $TargetTenantId.ToString().ToLowerInvariant()
+        $statusParameters = @{
+            BackendUri = $BackendUri
+            BackendApiKey = $BackendApiKey
+            TimeoutSeconds = $TimeoutSeconds
+        }
+        if ($PSBoundParameters.ContainsKey('WindowsManagementServicePath')) {
+            $statusParameters.WindowsManagementServicePath = $WindowsManagementServicePath
+        }
+
+        $beforeStatus = Get-WindowsDeviceLinkBackendStatus @statusParameters
+        $beforeHealth = $beforeStatus | Test-WindowsDeviceLinkHealth
+
+        if ($beforeStatus.AssociationPresent -and
+            -not [string]::IsNullOrWhiteSpace([string]$beforeStatus.TenantId) -and
+            ([string]$beforeStatus.TenantId).Trim().ToLowerInvariant() -ne $targetTenant) {
+
+            return [pscustomobject]@{
+                PSTypeName='Windows.DeviceLink.InitializationResult'
+                Action='Blocked'
+                Changed=$false
+                AssociationRequested=[bool]$Associate
+                AssociationResult=$null
+                AssociationDetails=$null
+                BeforeState='AssociationInDifferentTenant'
+                AfterState='AssociationInDifferentTenant'
+                Severity='Warning'
+                Message="Initialization was blocked because the Device Association exists in another tenant. Use an explicit tenant-move workflow before targeting tenant '$targetTenant'."
+                SerialNumber=$beforeStatus.SerialNumber
+                LinkId=$beforeStatus.LinkId
+                AssociationId=$beforeStatus.AssociationId
+                AssociationState=$beforeStatus.AssociationState
+                FirmwareVariables=$beforeStatus.FirmwareVariablesPresent
+                RegistrationResult=$null
+                BeforeStatus=$beforeStatus
+                AfterStatus=$beforeStatus
+            }
+        }
+
+        $action = Resolve-WindowsDeviceLinkInitializationAction -HealthState $beforeHealth.State
+        $changed = $false
+        $registration = $null
+        $completion = $null
+        $associationResult = $null
+        $afterStatus = $beforeStatus
+        $afterHealth = $beforeHealth
+        $message = $beforeHealth.Summary
+
+        switch ($action) {
+            'None' {
+                if ($beforeHealth.State -eq 'Preassociated') {
+                    $message = 'The DeviceLink is already preassociated in the requested target tenant. No cloud change was made.'
+                }
+                else {
+                    $message = 'The DeviceLink is already associated in the requested target tenant. No cloud change was made.'
+                }
+            }
+            'Register' {
+                $deviceLinkParameters = @{ TimeoutSeconds = $TimeoutSeconds }
+                if ($PSBoundParameters.ContainsKey('WindowsManagementServicePath')) {
+                    $deviceLinkParameters.WindowsManagementServicePath = $WindowsManagementServicePath
+                }
+                $deviceLink = Get-WindowsDeviceLink @deviceLinkParameters
+
+                if ($PSCmdlet.ShouldProcess($deviceLink.SerialNumber, "Create the missing DeviceLink pre-association in target tenant $targetTenant through the Azure Function backend")) {
+                    $preassociateUri = Resolve-WindowsDeviceLinkBackendEndpoint -BackendUri $BackendUri -Route preassociate
+                    $registration = Invoke-WindowsDeviceLinkWebhook -InputObject $deviceLink -WebhookUri $preassociateUri -WebhookApiKey $BackendApiKey -TenantId $targetTenant
+                    $changed = $true
+
+                    $afterStatus = Get-WindowsDeviceLinkBackendStatus @statusParameters
+                    $afterHealth = $afterStatus | Test-WindowsDeviceLinkHealth
+                    if ($afterHealth.State -notin @('Preassociated','Associated')) {
+                        throw "Function pre-association returned, but verification did not reach Preassociated or Associated. Verified state: $($afterHealth.State)."
+                    }
+                    if (([string]$afterStatus.TenantId).Trim().ToLowerInvariant() -ne $targetTenant) {
+                        throw 'Function pre-association verification returned an unexpected target tenant.'
+                    }
+                    $message = "DeviceLink pre-association completed through the Azure Function backend and was verified as $($afterHealth.State)."
+                }
+                else {
+                    $message = 'The DeviceLink is locally valid and not associated; Function-backed pre-association would be performed.'
+                    if ($Associate) { $associationResult = 'WouldPreassociateAndComplete' }
+                }
+            }
+            default {
+                $message = "Initialization was blocked because the current health state is '$($beforeHealth.State)'. $($beforeHealth.RecommendedAction)"
+            }
+        }
+
+        if ($Associate -and $afterHealth.State -eq 'Preassociated') {
+            $target = if ($afterStatus.SerialNumber) { $afterStatus.SerialNumber } else { 'DeviceLink' }
+            if ($PSCmdlet.ShouldProcess($target, 'Associate this device with the tenant')) {
+                $completeParameters = @{ TimeoutSeconds = $TimeoutSeconds; Confirm = $false }
+                if ($PSBoundParameters.ContainsKey('WindowsManagementServicePath')) {
+                    $completeParameters.WindowsManagementServicePath = $WindowsManagementServicePath
+                }
+
+                $completion = Complete-WindowsDeviceLinkAssociation @completeParameters
+                $associationResult = [string]$completion.Result
+                if ($completion.Changed) { $changed = $true }
+
+                $afterStatus = Get-WindowsDeviceLinkBackendStatus @statusParameters
+                $afterHealth = $afterStatus | Test-WindowsDeviceLinkHealth
+                if ($afterHealth.State -ne 'Associated') {
+                    throw "DeviceLink association returned, but Function-backed verification did not reach Associated. Verified state: $($afterHealth.State)."
+                }
+                if (([string]$afterStatus.TenantId).Trim().ToLowerInvariant() -ne $targetTenant) {
+                    throw 'Association verification returned an unexpected target tenant.'
+                }
+                $message = 'DeviceLink association succeeded and the final Function-backed cloud state was verified as Associated.'
+            }
+            elseif (-not $associationResult) {
+                $associationResult = 'WouldComplete'
+                $message = 'The DeviceLink is preassociated; association would be performed.'
+            }
+        }
+        elseif ($Associate -and $afterHealth.State -eq 'Associated') {
+            $associationResult = 'AlreadyAssociated'
+            $message = 'The DeviceLink is already associated in the requested target tenant. No association change was required.'
+        }
+
+        return [pscustomobject]@{
+            PSTypeName='Windows.DeviceLink.InitializationResult'
+            Action=$action
+            Changed=$changed
+            AssociationRequested=[bool]$Associate
+            AssociationResult=$associationResult
+            AssociationDetails=$completion
+            BeforeState=$beforeHealth.State
+            AfterState=$afterHealth.State
+            Severity=$afterHealth.Severity
+            Message=$message
+            SerialNumber=$beforeStatus.SerialNumber
+            LinkId=$beforeStatus.LinkId
+            AssociationId=$afterStatus.AssociationId
+            AssociationState=$afterStatus.AssociationState
+            FirmwareVariables=$afterStatus.FirmwareVariablesPresent
+            RegistrationResult=$registration
+            BeforeStatus=$beforeStatus
+            AfterStatus=$afterStatus
+        }
+    }
+
+    $effectiveAccessToken = $null
+    try {
+        $effectiveMethod = $Method
+        if ($Method -eq 'DeviceCode') {
+            if ($Environment -ne 'Global') { throw 'Native DeviceCode initialization currently supports the Global Microsoft cloud only.' }
+            $tokenParameters = @{}
+            if ($TenantId) { $tokenParameters.TenantId = $TenantId }
+            if ($ClientId) { $tokenParameters.ClientId = $ClientId }
+            Write-Information -InformationAction Continue -MessageData 'Using native OAuth device-code authentication for DeviceLink initialization.'
+            $token = Get-WindowsDeviceLinkDeviceCodeToken @tokenParameters
+            $effectiveAccessToken = ConvertTo-SecureString $token.AccessToken -AsPlainText -Force
+            $TenantId = $token.TenantId
+            $token = $null
+            $effectiveMethod = 'AccessToken'
+        }
+
+        $commonOnline = @{ Method = $effectiveMethod; Environment = $Environment; ClientTimeout = $ClientTimeout }
+        if ($effectiveAccessToken) {
+            $commonOnline.TenantId = $TenantId
+            $commonOnline.AccessToken = $effectiveAccessToken
+        }
+        else {
+            foreach ($name in @('TenantId','ClientId','AccessToken')) {
+                if ($PSBoundParameters.ContainsKey($name)) { $commonOnline[$name] = $PSBoundParameters[$name] }
+            }
+        }
+
+        $statusParameters = @{ Online = $true; Method = $effectiveMethod; Environment = $Environment; ClientTimeout = $ClientTimeout; TimeoutSeconds = $TimeoutSeconds }
+        foreach ($key in $commonOnline.Keys) {
+            if ($key -notin @('Method','Environment','ClientTimeout')) { $statusParameters[$key] = $commonOnline[$key] }
+        }
+        if ($PSBoundParameters.ContainsKey('WindowsManagementServicePath')) { $statusParameters.WindowsManagementServicePath = $WindowsManagementServicePath }
+
+        $beforeStatus = Get-WindowsDeviceLinkStatusCore @statusParameters
+        $beforeHealth = $beforeStatus | Test-WindowsDeviceLinkHealth
+        $action = Resolve-WindowsDeviceLinkInitializationAction -HealthState $beforeHealth.State
+        $changed = $false
+        $registration = $null
+        $completion = $null
+        $associationResult = $null
+        $afterStatus = $beforeStatus
+        $afterHealth = $beforeHealth
+        $message = $beforeHealth.Summary
+
+        switch ($action) {
+            'None' {
+                if ($beforeHealth.State -eq 'Preassociated') {
+                    $message = 'The DeviceLink is already preassociated. No change was made.'
+                }
+                else {
+                    $message = 'The DeviceLink is already associated. No change was made.'
+                }
+            }
+            'Register' {
+                $deviceLinkParameters = @{ TimeoutSeconds = $TimeoutSeconds }
+                if ($PSBoundParameters.ContainsKey('WindowsManagementServicePath')) { $deviceLinkParameters.WindowsManagementServicePath = $WindowsManagementServicePath }
+                $deviceLink = Get-WindowsDeviceLink @deviceLinkParameters
+
+                if ($PSCmdlet.ShouldProcess($deviceLink.SerialNumber, 'Create the missing tenant-side DeviceLink preassociation')) {
+                    $registerParameters = @{}
+                    foreach ($key in $commonOnline.Keys) { $registerParameters[$key] = $commonOnline[$key] }
+                    $registerParameters.InputObject = $deviceLink
+                    $registerParameters.Confirm = $false
+                    $registration = Register-WindowsDeviceLinkCore @registerParameters
+                    $changed = $true
+                    $afterStatus = Get-WindowsDeviceLinkStatusCore @statusParameters
+                    $afterHealth = $afterStatus | Test-WindowsDeviceLinkHealth
+                    if ($afterHealth.State -notin @('Preassociated','Associated')) {
+                        throw "DeviceLink registration returned, but verification did not reach Preassociated or Associated. Verified state: $($afterHealth.State)."
+                    }
+                    $message = "DeviceLink registration completed and was verified as $($afterHealth.State)."
+                }
+                else {
+                    $message = 'The DeviceLink is locally valid and not associated; registration would be performed.'
+                }
+            }
+            default {
+                $message = "Initialization was blocked because the current health state is '$($beforeHealth.State)'. $($beforeHealth.RecommendedAction)"
+            }
+        }
+
+        if ($Associate -and $afterHealth.State -eq 'Preassociated') {
+            $target = if ($afterStatus.SerialNumber) { $afterStatus.SerialNumber } else { 'DeviceLink' }
+            if ($PSCmdlet.ShouldProcess($target, 'Complete the tenant DeviceLink association on this device')) {
+                $completeParameters = @{ TimeoutSeconds = $TimeoutSeconds; Confirm = $false }
+                if ($PSBoundParameters.ContainsKey('WindowsManagementServicePath')) {
+                    $completeParameters.WindowsManagementServicePath = $WindowsManagementServicePath
+                }
+                $completion = Complete-WindowsDeviceLinkAssociation @completeParameters
+                $associationResult = [string]$completion.Result
+                if ($completion.Changed) { $changed = $true }
+
+                $afterStatus = Get-WindowsDeviceLinkStatusCore @statusParameters
+                $afterHealth = $afterStatus | Test-WindowsDeviceLinkHealth
+                if ($afterHealth.State -ne 'Associated') {
+                    throw "DeviceLink completion returned, but verification did not reach Associated. Verified state: $($afterHealth.State)."
+                }
+                $message = 'DeviceLink association succeeded and the final state was verified as Associated.'
+            }
+            else {
+                $associationResult = 'WouldComplete'
+                $message = 'The DeviceLink is preassociated; device-side association would be performed.'
+            }
+        }
+        elseif ($Associate -and $afterHealth.State -eq 'Associated') {
+            if ($completion) {
+                $associationResult = [string]$completion.Result
+                $message = 'DeviceLink association succeeded and the final state was verified as Associated.'
+            }
+            else {
+                $associationResult = 'AlreadyAssociated'
+                $message = 'The DeviceLink is already associated. No completion change was required.'
+            }
+        }
+
+        [pscustomobject]@{
+            PSTypeName='Windows.DeviceLink.InitializationResult'
+            Action=$action
+            Changed=$changed
+            AssociationRequested=[bool]$Associate
+            AssociationResult=$associationResult
+            AssociationDetails=$completion
+            BeforeState=$beforeHealth.State
+            AfterState=$afterHealth.State
+            Severity=$afterHealth.Severity
+            Message=$message
+            SerialNumber=$beforeStatus.SerialNumber
+            LinkId=$beforeStatus.LinkId
+            AssociationId=if ($afterStatus.AssociationId) { $afterStatus.AssociationId } elseif ($registration) { $registration.Id } else { $null }
+            AssociationState=$afterStatus.AssociationState
+            FirmwareVariables=$afterStatus.FirmwareVariablesPresent
+            RegistrationResult=$registration
+            BeforeStatus=$beforeStatus
+            AfterStatus=$afterStatus
+        }
+    }
+    finally {
+        $effectiveAccessToken = $null
+    }
+}

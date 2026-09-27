@@ -1,6 +1,6 @@
 @{
     RootModule        = 'WindowsDeviceLink.psm1'
-    ModuleVersion     = '0.10.1'
+    ModuleVersion     = '0.11.0'
     GUID              = '776a2252-d4f4-495d-9445-ac3195ebbf46'
     Author            = 'Rory Vossepoel'
     CompanyName       = 'Community'
@@ -19,7 +19,6 @@
         'Get-WindowsDeviceLinkLocalAssociation'
         'Get-WindowsDeviceLinkRepairPlan'
         'Get-WindowsDeviceLinkStatus'
-        'Get-WindowsDeviceLinkTenantCatalog'
         'Initialize-WindowsDeviceLink'
         'Register-WindowsDeviceLink'
         'Remove-WindowsDeviceLinkAssociation'

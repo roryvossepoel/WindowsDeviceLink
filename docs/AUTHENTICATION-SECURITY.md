@@ -1,52 +1,76 @@
-# Authentication and secret-handling matrix
+# Authentication and deployment security
 
-WindowsDeviceLink separates local DeviceLink operations from explicit tenant-side operations. Authentication parameters apply only to cloud operations.
+## Supported routes in 0.11
 
-## Security invariants
+| Route | UI and CLI | Credential handling |
+|---|---|---|
+| Direct Interactive | Operator sign-in on Windows through Microsoft Graph/WAM | Delegated session; no app secret |
+| Direct DeviceCode | Operator sign-in, including WinPE when tenant policy permits | Delegated token retained only for the session/operation |
+| Backend API | Operator or unattended provisioning | API key supplied at runtime; Graph credentials remain in the backend |
 
-The module must not emit the following through normal output, information/verbose/debug streams, returned errors or returned objects:
+DeviceLink generation and local firmware operations execute on the target device in
+WinPE or Windows/OOBE. The backend performs cloud operations; it does not generate
+the target device's local identity. The low-level Webhook registration transport is
+also an API route.
 
-- client secrets;
-- access/bearer tokens;
-- certificate private-key material;
-- webhook API keys;
-- raw DeviceLink JWT/payload data.
+## Recommended hardening for API deployments
 
-User-facing device-code `user_code` values are intentionally displayed because the user must enter them during authentication. The OAuth `device_code` value is treated as sensitive and must not be echoed in errors.
+These are deployment recommendations, not features that WindowsDeviceLink provisions
+or enforces. Each organization owns its infrastructure and credential lifecycle.
 
-## Method matrix
+- Restrict the Function App to the public NAT/egress IP addresses of trusted provisioning
+  networks and deny other sources. Apply equivalent restrictions to any endpoint that
+  distributes bootstrap configuration or credentials. Network restrictions supplement
+  authentication and do not identify individual devices.
+- Do not embed API keys, Graph secrets or private keys in WinPE images, public scripts,
+  repositories, command-line examples or logs. Supply credentials at execution time
+  through an appropriately protected organizational mechanism. A secret URL is not
+  access control. Runtime delivery still places the credential on the device temporarily.
+- Use HTTPS and send the key in the `X-WindowsDeviceLink-Key` request header. The supplied
+  backend validates this against `WINDOWSDEVICELINK_API_KEY`. This is a custom application
+  secret, not an Azure Functions host/function key. Rotating an Azure Function key does
+  not rotate this secret. The supplied HTTP triggers use anonymous platform auth because
+  the request handler performs the custom key check.
+- Rotate the application API secret periodically and immediately on suspected compromise.
+  Update the backend configuration and the protected distribution mechanism together.
+  Daily rotation is a possible organizational policy, not a module requirement or a
+  universal standard. The supplied backend accepts one configured key; it does not
+  implement dual-key overlap or automatic expiry. Active clients must obtain the new key.
+  A deployment requiring overlapping keys or disruption-free rotation must provide that
+  mechanism separately and verify its revocation behavior.
+- If an organization adds Azure platform key authentication, never distribute `_master`;
+  use the narrowest available scope. Platform authentication requires coordinated client
+  and server configuration and is not interchangeable with the custom API header.
+- Enforce allowed tenants and actions on the server. A selector in the UI is not an
+  authorization boundary. Record request IDs and operation outcomes without secrets.
 
-| Method | Transport | Required input | CI coverage | Live validation |
-| --- | --- | --- | --- | --- |
-| DeviceCode | Native OAuth + Graph REST | TenantId; optional ClientId | parameter boundaries, OAuth error redaction, Graph redaction, initializer token-reuse contract | successful sign-in + read/write smoke |
-| Interactive | Microsoft.Graph.Authentication | TenantId; optional ClientId | parameter boundaries / SDK argument forwarding | interactive sign-in smoke |
-| ClientSecret | Native OAuth + Graph REST | TenantId, ClientId, SecureString ClientSecret | required inputs, secret redaction, Graph error redaction | optional app-only read/write smoke |
-| AccessToken | Native Graph REST | TenantId, SecureString AccessToken | required inputs, bearer redaction, Graph error semantics | optional valid/expired token smoke |
-| Certificate | Microsoft.Graph.Authentication | TenantId, ClientId, X509Certificate2 | required inputs / SDK argument forwarding | certificate-backed app-only smoke |
-| CertificateThumbprint | Microsoft.Graph.Authentication | TenantId, ClientId, thumbprint | required inputs / SDK argument forwarding | certificate-store resolution smoke |
-| CertificateSubjectName | Microsoft.Graph.Authentication | TenantId, ClientId, subject name | required inputs / SDK argument forwarding | missing/ambiguous/valid certificate smoke |
-| EnvironmentVariable | Native OAuth + Graph REST | AZURE_TENANT_ID, AZURE_CLIENT_ID, AZURE_CLIENT_SECRET | missing-variable behavior and secret redaction | optional environment credential smoke |
-| ManagedIdentity | Microsoft.Graph.Authentication | optional user-assigned ClientId | parameter boundaries / SDK argument forwarding | Azure-hosted managed-identity smoke |
-| Webhook | HTTPS POST | WebhookUri; API key strongly recommended | API-key and DeviceLink-payload redaction | endpoint-specific smoke |
+Bootstrap services, key distribution, rotation jobs, networking and identity-based API
+access are outside the module's scope. Organizations may implement additional controls.
+We do not claim that a shared API key plus an IP allowlist authenticates a specific operator.
 
-## Error semantics
+## Session and error handling
 
-Authentication or transport failure is never equivalent to `NotAssociated`. Cloud lookup remains indeterminate until a successful Graph response proves that no matching association exists.
+Public Direct methods accept only Interactive and DeviceCode. Public certificate,
+client-secret, environment-credential, managed-identity and access-token inputs are
+removed. Existing SDK contexts must be delegated before Direct registration is allowed.
+Private token transport remains necessary for reuse after DeviceCode operator sign-in;
+it is not a public automation authentication route.
 
-Native Graph transport errors are normalized before leaving the module. HTTP status is retained when available, while bearer tokens, client secrets, webhook keys and raw DeviceLink payloads are removed from error text.
+The module must not expose bearer tokens, API keys or raw DeviceLink payloads in normal
+logs, errors or returned metadata. DeviceCode user codes are intentionally shown to the
+operator; OAuth device codes remain sensitive. Do not publish active sign-in codes.
 
-Mutation requests are not blindly retried. A POST or DELETE timeout can occur after the service committed the request, so retrying automatically can create ambiguous state.
+A failed lookup is Unknown, never proof of NotAssociated. Mutations are not blindly
+retried: a timeout can occur after the server committed an operation.
 
-## DeviceCode orchestration
+## Validation
 
-`Initialize-WindowsDeviceLink -Method DeviceCode` acquires one token at the beginning of the operation and reuses it for:
+Offline regression tests use synthetic credentials and mocked HTTP. Hardware smoke
+tests must separately verify Windows/OOBE and WinPE behavior before release. Backend
+credential handling is independent of the restricted Direct client surface.
 
-1. initial association lookup;
-2. registration when the state is `LocalOnly`;
-3. post-registration verification.
+## Microsoft references
 
-This avoids repeated device-code prompts inside one initialization run.
-
-## Live-test policy
-
-CI covers parameter contracts and redaction without using real credentials. Live tests are kept separate because Interactive, certificate authentication and Managed Identity depend on tenant or hosting infrastructure. Synthetic marker values should be used for all negative/redaction tests; real secrets must never be pasted into issue comments, CI output or test fixtures.
+- [Securing Azure Functions](https://learn.microsoft.com/en-us/azure/azure-functions/security-concepts)
+- [Function access keys and rotation](https://learn.microsoft.com/en-us/azure/azure-functions/function-keys-how-to)
+- [Azure Functions networking options](https://learn.microsoft.com/en-us/azure/azure-functions/functions-networking-options)

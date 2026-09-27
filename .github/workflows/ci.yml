@@ -24,6 +24,9 @@ jobs:
       - name: Validate backend runtime with mocked HTTP
         shell: pwsh
         run: ./tests/Azure-Backend-Runtime-Validation.ps1
+      - name: Validate backend tenant and authentication-profile configuration
+        shell: pwsh
+        run: ./tests/Backend-Configuration-Validation.ps1
 
   regression:
     name: Windows PowerShell 5.1 regression
@@ -104,6 +107,12 @@ jobs:
           $ErrorActionPreference = 'Stop'
           .\tests\Tenant-Assignment-Validation.ps1 -ModulePath $env:WDL_MODULE_PATH
 
+      - name: Validate unified Direct configuration
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          .\tests\Configuration-Validation.ps1 -ModulePath $env:WDL_MODULE_PATH
+
       - name: Validate backend-independent tenant catalog
         shell: powershell
         run: |
@@ -152,6 +161,12 @@ jobs:
           $ErrorActionPreference = 'Stop'
           .\tests\Online-Method-Validation.ps1 -ModulePath $env:WDL_MODULE_PATH
 
+      - name: Validate supported authentication routes and Backend CLI
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          .\tests\Auth-Routes-Validation.ps1 -ModulePath $env:WDL_MODULE_PATH
+
       - name: Validate authentication and secret handling
         shell: powershell
         run: |
@@ -187,6 +202,18 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           .\tests\Azure-Backend-Contract-Validation.ps1
+
+      - name: Validate Bicep syntax
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          az bicep build --file .\infrastructure\function-app\main.bicep --stdout | Out-Null
+
+      - name: Validate backend tenant and authentication-profile configuration
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          .\tests\Backend-Configuration-Validation.ps1
 
       - name: Final package safety check
         shell: powershell

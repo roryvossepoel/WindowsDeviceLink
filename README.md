@@ -31,7 +31,7 @@ WindowsDeviceLink can:
 
 ## Current version
 
-The current development release line is `0.11.0-preview1` (not yet released).
+The current preview release line is `0.11.0-preview1`.
 
 WindowsDeviceLink has two explicit execution routes:
 
@@ -432,7 +432,7 @@ See:
 
 ## Scope
 
-Preview release line: `0.10.1-preview1`.
+Preview release line: `0.11.0-preview1`.
 
 In scope: AMD64 Windows 11/WinPE, DeviceLink generation, official CSV export, Device Association query/pre-association/removal, native association discovery/completion on supported full Windows builds, local firmware inspection/reset, diagnostics/health, safe initialization, the optional full-Windows operator GUI, multiple authentication methods, webhook transport and the optional Azure Function reference backend.
 

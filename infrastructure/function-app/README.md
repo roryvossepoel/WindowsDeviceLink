@@ -22,7 +22,7 @@ The Bicep/ARM route is not a supported deployment method for `0.10.0-preview1`. 
 supplied Function App package and documented manual Azure configuration for the preview.
 Clean deployment, safe redeployment, secret preservation and the public Deploy to Azure
 experience are tracked in
-[issue #43](https://github.com/roryvossepoel/WindowsDeviceLink-Public/issues/43).
+[issue #43](https://github.com/roryvossepoel/WindowsDeviceLink/issues/43).
 
 ## Resource naming
 

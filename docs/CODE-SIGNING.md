@@ -12,7 +12,7 @@ If code signing is introduced, only WindowsDeviceLink artifacts built from sourc
 
 The canonical public source repository for releases is:
 
-- https://github.com/roryvossepoel/WindowsDeviceLink-Public
+- https://github.com/roryvossepoel/WindowsDeviceLink
 
 WindowsDeviceLink does not redistribute or sign Microsoft's `Windows.Management.Service.dll`. Windows PE users must supply a compatible Microsoft copy themselves where required.
 

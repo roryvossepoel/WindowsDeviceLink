@@ -381,14 +381,30 @@ See [AUTOPILOT-V1-VS-DEVICE-PREPARATION.md](AUTOPILOT-V1-VS-DEVICE-PREPARATION.m
 
 ## My device is registered in classic Autopilot. Can Device Association still be used?
 
-Yes. Microsoft supports both solutions side by side.
+Yes. The same physical device can keep its **classic Windows Autopilot (v1) registration** and also be **pre-associated / associated for Windows Autopilot device preparation**.
 
-For an Autopilot-registered device:
+For a device that still has a classic Autopilot registration:
 
-- if there is no Device Association, the classic Autopilot profile takes precedence;
-- if the device is Device Associated, Windows Autopilot device preparation takes precedence.
+| Device Association state | Deployment during OOBE |
+|---|---|
+| No Device Association | Classic Windows Autopilot takes precedence. |
+| Pre-associated before OOBE, with association completing during OOBE, or already associated | Device Association takes precedence and Windows Autopilot device preparation runs. |
 
-If you want device preparation **without** Device Association on a device that is still classically registered, Microsoft guidance is to deregister the classic Autopilot device first.
+Microsoft explicitly documents that an already Autopilot-registered device can still be pre-associated and that Device Association takes precedence during OOBE.
+
+### Do I need to delete the Autopilot v1 object before transitioning to device preparation?
+
+**No, when using Device Association.** This allows a staged transition from classic Autopilot to device preparation: configure the required device preparation policy and assignments, pre-associate the device with the intended tenant, and use device preparation at its next OOBE deployment. The existing v1 registration can remain; deleting it is not a prerequisite for this transition.
+
+This concerns the next OOBE deployment, not an automatic conversion of an already-running Windows installation. Only one provisioning flow runs for that deployment.
+
+If you want device preparation **without Device Association** on a device that is still classically registered, deregister the classic Autopilot device first. Assigning a device preparation policy alone does not override the classic registration.
+
+The v1 registration and Device Association remain separate objects. WindowsDeviceLink does not delete the v1 registration.
+
+Sources: [Microsoft — pre-associating an Autopilot-registered device](https://learn.microsoft.com/en-us/autopilot/device-preparation/device-association/lifecycle-management#pre-associating-a-device-that-is-registered-for-windows-autopilot) and [deployment precedence](https://learn.microsoft.com/en-us/autopilot/device-preparation/compare#using-windows-autopilot-device-preparation-and-windows-autopilot-concurrently).
+
+See also [the Autopilot comparison](AUTOPILOT-V1-VS-DEVICE-PREPARATION.md#what-happens-if-a-device-is-already-registered-in-classic-windows-autopilot).
 
 ## What does firmware 2/4 mean?
 

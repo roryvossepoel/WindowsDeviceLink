@@ -566,20 +566,20 @@ function Show-WindowsDeviceLink {
     $ui.CloudChecked = New-ValuePair -Parent $cloudCard -Caption 'Last checked' -Y 100 -CaptionWidth 105 -ValueWidth 335
     $ui.CloudChecked.Text = 'Not checked'
 
-    $actionsTitle = New-Object System.Windows.Forms.Label
-    $actionsTitle.Text = 'Actions'
-    $actionsTitle.Font = New-GuiFont -Size 11.5 -Style Bold
-    $actionsTitle.Location = [System.Drawing.Point]::new(16,150)
-    $actionsTitle.AutoSize = $true
-    $content.Controls.Add($actionsTitle)
+    $assignmentSectionTitle = New-Object System.Windows.Forms.Label
+    $assignmentSectionTitle.Text = 'Assignment'
+    $assignmentSectionTitle.Font = New-GuiFont -Size 11.5 -Style Bold
+    $assignmentSectionTitle.Location = [System.Drawing.Point]::new(16,288)
+    $assignmentSectionTitle.AutoSize = $true
+    $content.Controls.Add($assignmentSectionTitle)
 
-    $actionsPanel = New-Card -Title '' -X 14 -Y 176 -Width 1030 -Height 230
+    $assignmentPanel = New-Card -Title '' -X 14 -Y 314 -Width 1030 -Height 46
 
     $targetTenantRow = New-Object System.Windows.Forms.Panel
     $targetTenantRow.Location = [System.Drawing.Point]::new(0,0)
     $targetTenantRow.Size = [System.Drawing.Size]::new(1030,46)
     $targetTenantRow.BackColor = [System.Drawing.Color]::White
-    $actionsPanel.Controls.Add($targetTenantRow)
+    $assignmentPanel.Controls.Add($targetTenantRow)
 
     $targetTenantTitle = New-Object System.Windows.Forms.Label
     $targetTenantTitle.Text = 'Target tenant'
@@ -718,8 +718,17 @@ function Show-WindowsDeviceLink {
 
     Update-GuiTargetTenantDisplay
 
+    $actionsTitle = New-Object System.Windows.Forms.Label
+    $actionsTitle.Text = 'Actions'
+    $actionsTitle.Font = New-GuiFont -Size 11.5 -Style Bold
+    $actionsTitle.Location = [System.Drawing.Point]::new(16,372)
+    $actionsTitle.AutoSize = $true
+    $content.Controls.Add($actionsTitle)
+
+    $actionsPanel = New-Card -Title '' -X 14 -Y 398 -Width 1030 -Height 184
+
     $assignmentRow = New-Object System.Windows.Forms.Panel
-    $assignmentRow.Location = [System.Drawing.Point]::new(0,46)
+    $assignmentRow.Location = [System.Drawing.Point]::new(0,0)
     $assignmentRow.Size = [System.Drawing.Size]::new(1030,46)
     $assignmentRow.BackColor = [System.Drawing.Color]::White
     $actionsPanel.Controls.Add($assignmentRow)
@@ -772,9 +781,9 @@ function Show-WindowsDeviceLink {
     $assignmentSeparator.Size = [System.Drawing.Size]::new(1002,1)
     $assignmentRow.Controls.Add($assignmentSeparator)
 
-    $rowTools = New-ActionRow -Parent $actionsPanel -Title 'Status' -Description 'Refresh local or cloud state.' -Y 92 -Buttons @('Refresh cloud','Refresh local')
-    $rowExport = New-ActionRow -Parent $actionsPanel -Title 'Export' -Description 'Export DeviceLink CSV for manual import in Intune.' -Y 138 -Buttons @('Export CSV')
-    $rowOffboard = New-ActionRow -Parent $actionsPanel -Title 'Offboarding' -Description 'Remove the cloud association, reset local state, or both.' -Y 184 -Buttons @('Remove cloud','Reset local','Remove both')
+    $rowTools = New-ActionRow -Parent $actionsPanel -Title 'Status' -Description 'Refresh local or cloud state.' -Y 46 -Buttons @('Refresh cloud','Refresh local')
+    $rowExport = New-ActionRow -Parent $actionsPanel -Title 'Export' -Description 'Export DeviceLink CSV for manual import in Intune.' -Y 92 -Buttons @('Export CSV')
+    $rowOffboard = New-ActionRow -Parent $actionsPanel -Title 'Offboarding' -Description 'Remove the cloud association, reset local state, or both.' -Y 138 -Buttons @('Remove cloud','Reset local','Remove both')
 
     $offboardSeparator = @(
         $rowOffboard.Panel.Controls |
@@ -822,7 +831,7 @@ function Show-WindowsDeviceLink {
         $btnFullOffboard
     )
 
-    $actionsPanel.Height = 230
+    $actionsPanel.Height = 184
 
     $activityTitle = New-Object System.Windows.Forms.Label
     $activityTitle.Text = 'Activity'
@@ -2191,10 +2200,10 @@ function Show-WindowsDeviceLink {
             }
         }
 
-        $actionsY = $cardsBottom + 12
-        $actionsTitle.Location = [System.Drawing.Point]::new(16,$actionsY)
-        $actionsPanel.Location = [System.Drawing.Point]::new(14,($actionsY + 26))
-        $actionsPanel.Width = $fullWidth
+        $assignmentY = $cardsBottom + 12
+        $assignmentSectionTitle.Location = [System.Drawing.Point]::new(16,$assignmentY)
+        $assignmentPanel.Location = [System.Drawing.Point]::new(14,($assignmentY + 26))
+        $assignmentPanel.Width = $fullWidth
 
         $targetTenantRow.Width = $fullWidth
         $btnSignIn.Left = $fullWidth - 16 - $btnSignIn.Width
@@ -2212,6 +2221,11 @@ function Show-WindowsDeviceLink {
             $targetTenantValue.Width = [Math]::Max(220,$targetValueRight - $targetTenantValue.Left)
         }
         $targetTenantSeparator.Width = [Math]::Max(480,$fullWidth - 28)
+
+        $actionsY = $assignmentPanel.Bottom + 12
+        $actionsTitle.Location = [System.Drawing.Point]::new(16,$actionsY)
+        $actionsPanel.Location = [System.Drawing.Point]::new(14,($actionsY + 26))
+        $actionsPanel.Width = $fullWidth
 
         $assignmentRow.Width = $fullWidth
         $btnAssociateHost.Left = $fullWidth - 16 - $btnAssociateHost.Width

@@ -109,6 +109,7 @@ foreach ($required in @(
     'Tenant determined by sign-in',
     'Local association',
     'Cloud association',
+    "`$assignmentSectionTitle.Text = 'Assignment'",
     "-Title 'Connection'",
     "-Caption 'Manufacturer'",
     "-Caption 'Operating system'",
@@ -255,21 +256,22 @@ foreach ($localField in @('LocalState','Firmware','LinkId','LocalCreated')) {
     }
 }
 
-if ($source -notmatch [regex]::Escape("-Title 'Status' -Description 'Refresh local or cloud state.' -Y 92 -Buttons @('Refresh cloud','Refresh local')")) {
+if ($source -notmatch [regex]::Escape("-Title 'Status' -Description 'Refresh local or cloud state.' -Y 46 -Buttons @('Refresh cloud','Refresh local')")) {
     throw 'FAIL: Status actions must contain only cloud and local refresh, in the same order as Offboarding.'
 }
 
-if ($source -notmatch [regex]::Escape("-Title 'Export' -Description 'Export DeviceLink CSV for manual import in Intune.' -Y 138 -Buttons @('Export CSV')")) {
+if ($source -notmatch [regex]::Escape("-Title 'Export' -Description 'Export DeviceLink CSV for manual import in Intune.' -Y 92 -Buttons @('Export CSV')")) {
     throw 'FAIL: CSV export must use its own compact action row with the manual Intune import explanation.'
 }
 
 foreach ($layoutContract in @(
     '$targetTenantRow.Size = [System.Drawing.Size]::new(1030,46)',
+    '$assignmentPanel = New-Card -Title '''' -X 14 -Y 314 -Width 1030 -Height 46',
     '$btnSignIn.Size = [System.Drawing.Size]::new(118,28)',
     '$assignmentRow.Size = [System.Drawing.Size]::new(1030,46)',
     '$tenantSelector.ItemHeight = 22',
     '$tenantSelector.Size = [System.Drawing.Size]::new(220,28)',
-    '$actionsPanel.Height = 230'
+    '$actionsPanel.Height = 184'
 )) {
     if ($source -notmatch [regex]::Escape($layoutContract)) {
         throw "FAIL: Unified action-row layout contract is missing '$layoutContract'."

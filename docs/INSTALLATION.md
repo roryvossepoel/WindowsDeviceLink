@@ -1,6 +1,6 @@
 # WindowsDeviceLink installation guide
 
-This guide covers installation of WindowsDeviceLink from the PowerShell Gallery on Windows 11 and AMD64 Windows PE, including PowerShellGet, PackageManagement, prerelease handling, the WinPE publisher-check workaround, and the separately supplied Windows runtime DLL. For the intended pre-association -> Windows 11 OOBE lifecycle and the WinPE native-completion boundary, see [WINPE-WORKFLOW.md](WINPE-WORKFLOW.md).
+This guide covers installation of WindowsDeviceLink from the PowerShell Gallery on AMD64 and ARM64 Windows 11, and on AMD64 Windows PE, including PowerShellGet, PackageManagement, prerelease handling, the WinPE publisher-check workaround, and the separately supplied Windows runtime DLL. For the intended pre-association -> Windows 11 OOBE lifecycle and the WinPE native-completion boundary, see [WINPE-WORKFLOW.md](WINPE-WORKFLOW.md).
 
 > [!IMPORTANT]
 > WindowsDeviceLink is currently preview software. This guide targets the `0.11.0-preview1` release line.
@@ -25,7 +25,7 @@ Get-Module WindowsDeviceLink |
 Test-WindowsDeviceLinkSupport
 ```
 
-A normal Windows 11 installation does **not** require `Windows.Management.Service.dll` to be supplied separately. WindowsDeviceLink uses the Windows runtime already registered by the operating system.
+A normal AMD64 or ARM64 Windows 11 installation does **not** require `Windows.Management.Service.dll` to be supplied separately. WindowsDeviceLink uses the architecture-matching Windows runtime already registered by the operating system. ARM64 support is intentionally limited to this full-Windows registered-runtime route; ARM64 WinPE and direct ARM64 DLL activation are not supported.
 
 ## Understand PowerShellGet and PackageManagement first
 

@@ -6,7 +6,7 @@ The table below records earlier hardware validation, not a fresh 0.11 hardware c
 Before releasing 0.11, repeat Interactive sign-in/retry, DeviceCode sign-in/refresh/sign-out,
 Direct pre-association/removal, and Backend assignment/offboarding in Windows and WinPE.
 
-The primary Windows Autopilot Device Preparation Device Association workflow has been validated on physical AMD64 hardware across Windows 11 and AMD64 Windows PE.
+The primary Windows Autopilot Device Preparation Device Association workflow has been validated on physical AMD64 hardware across Windows 11 and AMD64 Windows PE. ARM64 full-Windows support through the registered system runtime is now available for controlled physical-hardware validation; it is not yet recorded as an end-to-end validated route here.
 
 ## Confirmed direct functionality
 

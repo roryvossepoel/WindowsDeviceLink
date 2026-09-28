@@ -70,7 +70,13 @@ function Test-WindowsDeviceLinkSupport {
         $signatureWarning = "Authenticode validation was unavailable: $($_.Exception.Message)"
     }
 
-    $architectureSupported = [Environment]::Is64BitProcess -and $env:PROCESSOR_ARCHITECTURE -eq 'AMD64'
+    $isAmd64Host = [Environment]::Is64BitProcess -and $env:PROCESSOR_ARCHITECTURE -eq 'AMD64'
+    $isArm64RegisteredWindows = [Environment]::Is64BitProcess -and
+        $env:PROCESSOR_ARCHITECTURE -eq 'ARM64' -and
+        -not $isWinPE -and
+        $dllSource -eq 'System' -and
+        $activationMode -eq 'RegisteredWinRT'
+    $architectureSupported = $isAmd64Host -or $isArm64RegisteredWindows
     if ($architectureSupported) {
         if ($activationMode -eq 'RegisteredWinRT') {
             $nativeProbe = [WinPEDeviceLink.Native.DeviceLinkClient]::TestRegistered()
@@ -80,7 +86,7 @@ function Test-WindowsDeviceLinkSupport {
         }
     }
     else {
-        $nativeProbe = [pscustomobject]@{ Success = $false; Message = 'Native probe skipped because the current process is not AMD64 64-bit PowerShell.' }
+        $nativeProbe = [pscustomobject]@{ Success = $false; Message = 'Native probe skipped because this architecture and activation route is not supported.' }
     }
 
     [pscustomobject]@{
@@ -95,6 +101,6 @@ function Test-WindowsDeviceLinkSupport {
         MicrosoftSigned  = $isMicrosoftSigned
         NativeProbe      = $nativeProbe.Message
         Warning          = $signatureWarning
-        Reason           = if (-not $architectureSupported) { 'The current preview supports AMD64 64-bit PowerShell only.' } elseif (-not $nativeProbe.Success) { $nativeProbe.Message } else { $null }
+        Reason           = if (-not $architectureSupported) { 'Supported routes are native 64-bit AMD64 PowerShell, or native 64-bit ARM64 PowerShell on full Windows using the registered system runtime. ARM64 Windows PE and direct ARM64 DLL activation are not supported.' } elseif (-not $nativeProbe.Success) { $nativeProbe.Message } else { $null }
     }
 }

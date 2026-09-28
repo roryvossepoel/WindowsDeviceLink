@@ -645,12 +645,6 @@ function Show-WindowsDeviceLink {
     $btnSignIn.Visible = $usesInteractiveUserAuthentication
     $targetTenantRow.Controls.Add($btnSignIn)
 
-    $targetTenantSeparator = New-Object System.Windows.Forms.Panel
-    $targetTenantSeparator.BackColor = [System.Drawing.Color]::FromArgb(232,232,232)
-    $targetTenantSeparator.Location = [System.Drawing.Point]::new(14,45)
-    $targetTenantSeparator.Size = [System.Drawing.Size]::new(1002,1)
-    $targetTenantRow.Controls.Add($targetTenantSeparator)
-
     function Update-GuiTargetTenantDisplay {
         if (-not $targetTenantValue) { return }
 
@@ -2220,8 +2214,6 @@ function Show-WindowsDeviceLink {
             $targetValueRight = if ($usesInteractiveUserAuthentication) { $btnSignIn.Left - 8 } else { $fullWidth - 16 }
             $targetTenantValue.Width = [Math]::Max(220,$targetValueRight - $targetTenantValue.Left)
         }
-        $targetTenantSeparator.Width = [Math]::Max(480,$fullWidth - 28)
-
         $actionsY = $assignmentPanel.Bottom + 12
         $actionsTitle.Location = [System.Drawing.Point]::new(16,$actionsY)
         $actionsPanel.Location = [System.Drawing.Point]::new(14,($actionsY + 26))

@@ -2230,7 +2230,7 @@ function Show-WindowsDeviceLink {
         # Align Copy and Clear to the same right edge used by the action buttons.
         # Action buttons sit 16 px inside the right edge of the Actions panel.
         $clearX = $actionsPanel.Right - 16 - $btnClearActivity.Width
-        $clearY = $activityY - 5
+        $clearY = $activityY
         $btnClearActivity.Location = [System.Drawing.Point]::new($clearX,$clearY)
         $copyX = $clearX - 8 - $btnCopyActivity.Width
         $btnCopyActivity.Location = [System.Drawing.Point]::new($copyX,$clearY)

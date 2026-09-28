@@ -14,7 +14,7 @@ WindowsDeviceLink is an open-source PowerShell module for **Device Association**
 
 - **Prepare devices before Windows deployment.** Generate the DeviceLink identity and pre-associate from Windows 11 or compatible WinPE; Windows can complete association during OOBE.
 - **Use the interface that fits the job.** Run PowerShell cmdlets from the console, integrate them into deployment scripts, or use the operator GUI.
-- **Start with one tenant, extend to multiple customers.** Use Direct mode with operator sign-in, or add the optional Azure Function backend for multitenant lookup, unattended assignment and controlled tenant moves.
+- **Work with one or multiple tenants.** Both Direct and Backend support multiple tenants. Direct uses operator sign-in for the selected tenant; Backend is recommended for multitenant management, with lookup across configured tenants, unattended assignment and controlled tenant moves.
 - **See what is happening.** Inspect local firmware and tenant-side state, run diagnostics, export the official DeviceLink CSV and follow a documented offboarding flow.
 - **Transition from classic Autopilot.** With Device Association, the existing Autopilot v1 registration can remain while the next OOBE deployment uses device preparation. [How this works](#moving-from-autopilot-v1).
 
@@ -44,7 +44,7 @@ Get-WindowsDeviceLinkStatus -Online -Method Interactive |
     Format-List
 ```
 
-A tenant ID is optional: the sign-in context selects the tenant. Supply `-TenantId '<tenant-id>'` when the target must be explicit. Direct mode checks that tenant only. Pre-association creates the tenant-side record; it does not enroll Windows or install apps.
+A tenant ID is optional: the sign-in context selects the tenant. Direct mode also supports working with multiple tenants: supply `-TenantId '<tenant-id>'` to select the target for each CLI operation and authenticate with sufficient rights in that tenant. Each operation checks only its selected tenant. Pre-association creates the tenant-side record; it does not enroll Windows or install apps.
 
 <details>
 <summary>View a PowerShell CLI status example</summary>
@@ -71,15 +71,24 @@ The **Associate** action completes the local device-side association and is avai
 
 ## Choose a mode
 
-Both modes support the CLI and GUI.
+**Both Direct and Backend support multiple tenants, through the CLI and GUI.** Backend is the recommended mode for ongoing multitenant management.
 
 | | Direct | Backend |
 |---|---|---|
 | Connects to | Microsoft Graph | Your Azure Function backend |
 | Authentication | Operator sign-in: Interactive or DeviceCode | Function API credential; Graph app credentials stay in Azure |
-| Tenant scope | One selected tenant | All configured tenants |
-| Best fit | Interactive work in a known tenant | Multitenant lookup, unattended assignment and verified tenant moves |
+| Tenant support | One or multiple tenants; select a target for each operation | One or multiple tenants; centrally managed catalog |
+| Cloud lookup | Selected tenant only | All configured tenants |
+| Best fit | Interactive work across known tenants without a backend | Recommended for multitenant management, unattended assignment and verified tenant moves |
 | Azure backend required | No | Yes |
+
+For a **Direct-mode tenant selector in the GUI**, load a configuration containing multiple tenants:
+
+```powershell
+Show-WindowsDeviceLink -Configuration 'E:\Config\devicelink.json'
+```
+
+Select a tenant and sign in with an account that has sufficient rights there. Sign out before selecting another tenant. Configuration can be a local JSON file, HTTPS URL or inline JSON; see [multiple-tenant configuration examples](docs/CONFIGURATION.md#multiple-tenants-and-app-registrations). Direct checks the selected tenant; Backend adds lookup across all configured tenants and verified tenant moves.
 
 For **unattended execution**, use the Backend CLI with an explicit target tenant and a securely supplied API key. Interactive and DeviceCode sign-in require a user. A backend failure does not silently fall back to Direct mode.
 

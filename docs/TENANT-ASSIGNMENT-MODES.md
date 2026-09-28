@@ -6,9 +6,12 @@ WindowsDeviceLink supports several operator flows through two execution routes:
 - **Backend** — the device delegates catalog lookup and tenant assignment to the
   WindowsDeviceLink Function App.
 
-Backend mode is the recommended route for structural multitenant use. Direct mode
-remains useful for single-tenant operation, fixed-purpose media, and controlled
-environments that deliberately do not deploy the Function App.
+**Both Direct and Backend support multiple tenants.** Direct operates in one selected
+tenant at a time: use the sign-in context or an explicit `TenantId` in the CLI, or a
+configured tenant selector in the GUI. Backend mode is the recommended route for
+ongoing multitenant management because it checks all configured tenants and supports
+verified tenant moves. Direct remains useful for interactive work across known
+tenants, fixed-purpose media, and environments without the Function App.
 
 ## Choose a mode
 
@@ -152,6 +155,7 @@ ID and certificate or secret may be reused where consent exists; the token may n
 
 | Capability | Direct | Backend |
 |---|---:|---:|
+| Work with multiple tenants | Yes, one selected tenant per operation | Yes, with lookup across configured tenants |
 | Operate in one known target tenant | Yes | Yes |
 | Local or HTTPS friendly-name catalog | Yes | Function catalog |
 | Prove absence from every configured tenant | No | Yes |

@@ -68,9 +68,9 @@ is authoritative unless `-TenantId` fixed it explicitly. When a local tenant cat
 configured, selecting a target tenant is mandatory before sign-in or any cloud action;
 authentication is then scoped to that selected tenant.
 
-**Sign in** is shown only for delegated `Interactive` and `DeviceCode` methods. App-only
-methods do not represent a user as signed in: their credential is used non-interactively
-when **Refresh cloud**, **Pre-associate**, **Associate**, or another cloud action runs.
+**Sign in** is shown in Direct mode for `Interactive` and `DeviceCode`. Backend mode
+uses the API credential supplied at startup and does not sign the operator into Graph.
+Certificate and client-secret authentication are configured in the backend, not in the GUI.
 
 ## Authentication
 
@@ -99,6 +99,17 @@ Show-WindowsDeviceLink -BackendUri 'https://backend.example.com/api/devicelink' 
 ```
 
 For unattended operation use Backend mode. See the [hardening recommendations](AUTHENTICATION-SECURITY.md).
+
+<details>
+<summary>View the Backend GUI</summary>
+
+![WindowsDeviceLink operator GUI in Backend mode](images/gui-backend-overview.png)
+
+*Backend mode on Windows 11 ARM64. Identifying details have been replaced with example
+values. Direct mode uses the same dashboard with operator sign-in and an optional
+configured tenant selector.*
+
+</details>
 
 The GUI uses the existing WindowsDeviceLink authentication helpers and shared lifecycle implementations.
 It adds only session-scoped orchestration so an operator does not need to repeat the

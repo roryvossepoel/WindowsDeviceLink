@@ -10,17 +10,21 @@ The module manifest is the source of truth:
 src/WindowsDeviceLink/WindowsDeviceLink.psd1
 ```
 
-A preview such as `0.4.3-preview1` is represented by:
+A preview such as `0.12.0-preview1` is represented by these manifest fields:
 
 ```powershell
-ModuleVersion = '0.4.3'
-PrivateData.PSData.Prerelease = 'preview1'
+@{
+    ModuleVersion = '0.12.0'
+    PrivateData = @{
+        PSData = @{ Prerelease = 'preview1' }
+    }
+}
 ```
 
 The corresponding GitHub tag is:
 
 ```text
-v0.4.3-preview1
+v0.12.0-preview1
 ```
 
 For a stable release, leave `Prerelease` empty/remove the prerelease label and use a tag such as `v1.0.0`.
@@ -43,13 +47,38 @@ Before publishing a new version:
 2. update release-facing documentation where the currently published version is mentioned;
 3. run the Windows 11 smoke tests;
 4. run the AMD64 WinPE smoke tests where applicable;
-5. review `TESTING.md` and complete the applicable rows in
-   `docs/TEST-MATRIX-0.10.0.md`, including separate operator and automation paths;
+5. review [recorded evidence](../TESTING.md) and complete the applicable items in the
+   [current validation checklist](VALIDATION-CHECKLIST.md), recording artifact version,
+   execution date and environment for separate operator and automation paths;
 6. scan the public repository for tenant IDs, serial numbers, association IDs, JWT data, secrets, test API keys and other environment-specific identifiers;
 7. confirm `Windows.Management.Service.dll` is not present in the public repository or release package;
 8. build locally with `tools/New-GalleryPackage.ps1` when doing a final manual verification;
 9. verify the public command surface with `Test-ModuleManifest` / `Get-Command`;
-10. commit all release content to `main` before starting either release workflow.
+10. require successful Module CI, including documentation checks, for the exact candidate;
+11. commit all release content to `main` before starting either release workflow.
+
+## Documentation checks
+
+CI checks repository-local Markdown links and heading anchors, including links in
+historical documents. It does not request external websites. Run the same check locally:
+
+```powershell
+python tests/Documentation-Links-Tests.py
+python tests/Documentation-Links-Validation.py
+```
+
+The Windows PowerShell job also parses fenced PowerShell examples in current guides
+and compares literal public command names, named parameters, parameter sets and
+ValidateSet values with the staged module. It never executes the examples:
+
+```powershell
+.\tests\Documentation-Examples-Validation.ps1
+```
+
+Release notes, the historical 0.10 matrix and the archived 0.4.x lifecycle plan are
+excluded from current-command checks. Keep new executable examples in `powershell`
+fences and use full parameter names. Dynamic values, splatted arguments, permissions,
+runtime behavior, diagram rendering and screenshot readability require separate review.
 
 ## Create the GitHub release and immutable tag
 
@@ -58,7 +87,7 @@ Use GitHub Actions -> **Create GitHub Release** -> **Run workflow**.
 The optional `expected_version` input is a safety check. For example:
 
 ```text
-0.9.0-preview1
+0.12.0-preview1
 ```
 
 The workflow derives `v<version>` from the manifest, verifies that the source is the current GitHub-Verified `main` commit, and creates the prerelease/tag without moving an existing tag.
@@ -70,7 +99,7 @@ The immutable tag is required before Gallery publication.
 After the GitHub release/tag exists, use GitHub Actions -> **Publish PowerShell Gallery** -> **Run workflow** and provide the exact release version, for example:
 
 ```text
-0.9.0-preview1
+0.12.0-preview1
 ```
 
 The Gallery workflow:
@@ -87,33 +116,13 @@ A normal push to `main` never publishes a Gallery package.
 
 ## Recommended order
 
-```text
-finish code and documentation
-        |
-        v
-validate Windows / WinPE
-        |
-        v
-final public-repository audit
-        |
-        v
-merge release-prep PR through GitHub
-        |
-        v
-GitHub Verified main commit
-        |
-        v
-Create GitHub Release workflow
-        |
-        v
-immutable vX.Y.Z[-prerelease] source tag
-        |
-        v
-Publish PowerShell Gallery workflow
-        |
-        v
-install the actual Gallery package and smoke-test it
-```
+1. Finish code and documentation.
+2. Validate applicable Windows / WinPE paths and run CI.
+3. Review the public repository and release package.
+4. Merge the release-preparation PR through GitHub and verify the resulting main commit.
+5. Run Create GitHub Release to create the immutable source tag.
+6. Run Publish PowerShell Gallery for that exact tag.
+7. Install the actual Gallery package and record the smoke-test result.
 
 The GitHub release/tag is intentionally created before Gallery publication because the Gallery workflow publishes only from an immutable release tag.
 

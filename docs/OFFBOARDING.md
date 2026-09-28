@@ -11,24 +11,12 @@ The required cleanup depends on whether the device is still **Pre-associated** o
 
 ```mermaid
 flowchart TD
-    A["Start offboarding"]
-    B{"Current Device Association state?"}
-    C["Delete tenant-side<br/>Device Association record"]
-    D["End / remove<br/>MDM enrollment"]
-    E["Clear local Device Link<br/>UEFI state"]
-    F["Verify old association<br/>state is cleared"]
-    G["Delete tenant-side<br/>Device Association record"]
-    H["Offboarded"]
-
-    A --> B
-    B -->|"Pre-associated"| C
-    C --> H
-
-    B -->|"Associated"| D
-    D --> E
-    E --> F
-    F --> G
-    G --> H
+    A{"Association state?"}
+    A -->|"Pre-associated"| B["Delete cloud association"]
+    A -->|"Associated"| C["End MDM enrollment"]
+    C --> D["Clear and verify UEFI state"]
+    D --> B
+    B --> E["Verify association removed"]
 ```
 
 ## Pre-associated device

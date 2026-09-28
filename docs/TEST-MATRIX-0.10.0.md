@@ -1,6 +1,9 @@
 # WindowsDeviceLink 0.10.0 test matrix
 
-> Historical 0.10 test plan. For the current preview routes, see [TESTING.md](../TESTING.md).
+> Historical 0.10 test plan, retained for context. Its unchecked rows are not the current
+> backlog. Direct app-only and caller-supplied token routes listed below were removed
+> from the public surface in 0.11. Use the [current checklist](VALIDATION-CHECKLIST.md)
+> for remaining tests and [TESTING.md](../TESTING.md) for recorded evidence.
 
 This matrix records both the focused release gate for `0.10.0-preview1` and the
 broader validation work planned after that preview. It separates automated contract

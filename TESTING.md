@@ -2,9 +2,24 @@
 
 Last updated: 2026-09-28
 
-The table below records earlier hardware validation, not a fresh 0.11 hardware certification.
-Before releasing 0.11, repeat Interactive sign-in/retry, DeviceCode sign-in/refresh/sign-out,
-Direct pre-association/removal, and Backend assignment/offboarding in Windows and WinPE.
+This file preserves recorded validation evidence, including results from earlier previews.
+An earlier Pass does not certify every later package, authentication route or hardware build.
+The current preview is `0.12.0-preview1`; use the [current validation and polish checklist](docs/VALIDATION-CHECKLIST.md)
+for the remaining work, in order. A documentation review does not count as a live test.
+
+## Current evidence summary
+
+| Area | Recorded evidence | Remaining current-run evidence |
+|---|---|---|
+| Automated regression | Module/package, authentication, configuration, lifecycle and mocked backend tests run in CI | Check the exact candidate commit in [GitHub Actions](https://github.com/roryvossepoel/WindowsDeviceLink/actions) |
+| Backend on Windows 11 AMD64 / ARM64 and AMD64 WinPE | Physical-device lifecycle tests recorded below; ARM64 completion uses full Windows | Targeted regression after relevant changes and final Gallery-package smoke test |
+| Direct CLI / GUI | Earlier Direct operations and DeviceCode behavior validated | Complete current Interactive / DeviceCode and tenant-selection coverage |
+| Direct JSON configuration | File, HTTPS, inline JSON and client routing covered offline | Live fixed-name, tenant-switching and client-selection checks |
+| Published Gallery installation | Earlier package tests retained below | Record the final candidate/package version separately from source-checkout tests |
+
+Do not treat the [historical 0.10 test plan](docs/TEST-MATRIX-0.10.0.md) as the current
+authentication matrix. Current Direct authentication is Interactive or DeviceCode;
+certificate/client-secret authentication belongs to the backend's Graph connection.
 
 The primary Windows Autopilot Device Preparation Device Association workflow has been validated on physical AMD64 hardware across Windows 11 and AMD64 Windows PE. The full-Windows workflow has also been validated end to end on physical ARM64 hardware through the registered system runtime. ARM64 WinPE and x64-emulated PowerShell on ARM64 remain unsupported.
 
@@ -110,7 +125,7 @@ Validated in WinPE:
 
 No tenant IDs, serial numbers, Link IDs, SMBIOS UUIDs, association IDs or device-code values from the live validation are retained in this document.
 
-### Physical ARM64 Windows 11 validation for 0.11
+### Physical ARM64 Windows 11 validation recorded for 0.12
 
 Validated with native ARM64 Windows PowerShell 5.1 on a physical ARM64 Windows 11 device using the architecture-matching registered system runtime:
 
@@ -165,7 +180,7 @@ The parameter regression suite passed, including validation that:
 - delegated `Interactive` and `DeviceCode` authentication can omit `TenantId`; `DeviceCode` defaults to the `organizations` authority;
 - Device Association lookup requires exactly one selector;
 
-The 0.11 Direct surface supports Interactive and DeviceCode only. Backend and low-level Webhook use API authentication. App-only and public AccessToken routes are rejected; internal delegated token reuse remains covered by regression tests.
+The current Direct surface supports Interactive and DeviceCode only. Backend and low-level Webhook use API authentication. App-only and public AccessToken routes are rejected; internal delegated token reuse remains covered by regression tests.
 
 Backend configuration regression tests cover a shared multitenant application profile,
 separate certificate/client-secret profiles, tenant-specific token acquisition, and a
@@ -380,6 +395,10 @@ preview backend delivery route; the Bicep/ARM Deploy to Azure path remains exper
 
 ## Remaining validation / future work
 
+The ordered [current checklist](docs/VALIDATION-CHECKLIST.md) tracks live tests, UI review,
+screenshots and package verification. The items below retain the broader research and
+compatibility scope; they are not all required for the next preview.
+
 - Trusted code signing; the initial SignPath Foundation application was reviewed but not approved because the project does not yet have enough external adoption/visibility signals. Revisit SignPath or another trusted signing path later.
 - Retest normal WinPE `Install-Module` without `-SkipPublisherCheck` after signing.
 - Retest and optimize the beta Device Association serial-number server-side lookup; the current client-side fallback is functionally correct.
@@ -390,12 +409,12 @@ preview backend delivery route; the Bicep/ARM Deploy to Azure path remains exper
 - Additional Windows 11 / WinPE builds and OEMs/models.
 - Non-Global Microsoft clouds.
 
-## Configuration validation (0.11 preview)
+## Configuration validation
 
 Offline checks cover JSON file/HTTPS/inline loading, strict schema validation, duplicate
 names and IDs, clientId precedence, conflicting parameters, single-tenant fixed labels,
 multitenant selection and client routing for Interactive/DeviceCode.
 
-Live UI checks before release: fixed tenant name before/after sign-in and sign-out;
+Remaining live UI checks: fixed tenant name before/after sign-in and sign-out;
 switch tenants after sign-out; verify the shared/overridden client app and authenticated
 tenant; repeat DeviceCode in WinPE. Backend catalog behavior must remain unchanged.

@@ -1,5 +1,9 @@
 # Device Association lifecycle: validated findings and next release
 
+> Historical research and planning for the 0.4.x previews. The remaining-work section
+> below is not the current backlog. Use [offboarding](OFFBOARDING.md) for current
+> operator instructions and the [current checklist](VALIDATION-CHECKLIST.md) for next steps.
+
 This document records the firmware-lifecycle investigation completed after `0.4.2-preview1` and the remaining work before `0.4.3-preview1` is published.
 
 ## Goal

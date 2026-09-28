@@ -1,12 +1,12 @@
 # WindowsDeviceLink validation matrix
 
-Last updated: 2026-09-26
+Last updated: 2026-09-28
 
 The table below records earlier hardware validation, not a fresh 0.11 hardware certification.
 Before releasing 0.11, repeat Interactive sign-in/retry, DeviceCode sign-in/refresh/sign-out,
 Direct pre-association/removal, and Backend assignment/offboarding in Windows and WinPE.
 
-The primary Windows Autopilot Device Preparation Device Association workflow has been validated on physical AMD64 hardware across Windows 11 and AMD64 Windows PE.
+The primary Windows Autopilot Device Preparation Device Association workflow has been validated on physical AMD64 hardware across Windows 11 and AMD64 Windows PE. The full-Windows workflow has also been validated end to end on physical ARM64 hardware through the registered system runtime. ARM64 WinPE and x64-emulated PowerShell on ARM64 remain unsupported.
 
 ## Confirmed direct functionality
 
@@ -110,6 +110,25 @@ Validated in WinPE:
 
 No tenant IDs, serial numbers, Link IDs, SMBIOS UUIDs, association IDs or device-code values from the live validation are retained in this document.
 
+### Physical ARM64 Windows 11 validation for 0.11
+
+Validated with native ARM64 Windows PowerShell 5.1 on a physical ARM64 Windows 11 device using the architecture-matching registered system runtime:
+
+- support detection reported `Environment=Windows`, `Architecture=ARM64`, `Supported=True`, `DllSource=System` and `ActivationMode=RegisteredWinRT`;
+- local DeviceLink identity retrieval and native `.devicelink.csv` export succeeded;
+- backend tenant lookup and pre-association succeeded from a base identity with two of four firmware variables present;
+- native association completion succeeded and produced a valid, identity-matching association JWT with all four firmware variables present;
+- local and cloud refresh both returned the expected associated state;
+- cloud-only removal preserved the complete local firmware state;
+- local-only reset returned the device to a two-variable base identity;
+- combined cloud and local offboarding returned the device to base identity with no tenant-side association;
+- reassignment, pre-association and association against another configured tenant completed successfully;
+- the operator GUI displayed `Windows 11 (ARM64)` and maintained correct action states throughout the lifecycle.
+
+The same ARM64 device was also checked from x64-emulated PowerShell. That path is deliberately rejected because the architecture-mismatched native runtime fails with `0x800700C1`. ARM64 support therefore requires a native ARM64 Windows PowerShell process. ARM64 WinPE and direct ARM64 DLL activation were not enabled or claimed by this work.
+
+No tenant names or IDs, profile names, serial numbers, Link IDs, SMBIOS UUIDs or association IDs from the live ARM64 validation are retained in this document.
+
 ## Health regression validation
 
 The hardware-independent health regression suite was run successfully under Windows PowerShell 5.1.
@@ -158,9 +177,9 @@ validated with mocked identity and Graph transports.
 
 ## Operator GUI validation
 
-`Show-WindowsDeviceLink` has been exercised on physical AMD64 Windows 11 and AMD64
-Windows PE hardware. Backend mode was validated through a real Function deployment
-with an authenticated multitenant catalog.
+`Show-WindowsDeviceLink` has been exercised on physical AMD64 and ARM64 Windows 11,
+and on AMD64 Windows PE hardware. Backend mode was validated through a real Function
+deployment with an authenticated multitenant catalog.
 
 Validated GUI behavior includes:
 
@@ -352,7 +371,7 @@ See [`docs/WEBHOOK-SCHEMA-v1.md`](docs/WEBHOOK-SCHEMA-v1.md).
 ## Published preview
 
 The repository validation described above covers the `0.11.0-preview1` candidate,
-including the operator GUI on physical AMD64 Windows 11 and AMD64 Windows PE hardware.
+including the operator GUI on physical AMD64 and ARM64 Windows 11 and AMD64 Windows PE hardware.
 The GUI lifecycle tests cover pre-association, association, idempotency,
 cloud/local/full offboarding, stale local/cloud combinations, tenant-source correlation,
 DeviceCode token reuse, WinPE CSV export, authenticated backend tenant selection, and

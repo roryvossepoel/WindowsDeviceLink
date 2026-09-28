@@ -204,11 +204,11 @@ See [INSTALLATION.md](docs/INSTALLATION.md) for the complete setup and troublesh
 
 ## Requirements
 
-- Physical AMD64 device.
+- Physical AMD64 device, or an ARM64 device running full Windows 11 through the registered system runtime.
 - TPM 2.0 in a usable state.
 - UEFI firmware.
 - 64-bit Windows PowerShell 5.1.
-- Windows 11 or compatible AMD64 Windows PE.
+- Full Windows 11 on AMD64 or ARM64, or compatible AMD64 Windows PE.
 - WinPE: compatible administrator-supplied `Windows.Management.Service.dll` through the **Bring Your Own DLL (BYO-DLL)** compatibility path.
 - Direct Graph Device Association operations: Microsoft Graph permission `DeviceManagementServiceConfig.ReadWrite.All`.
 - Firmware read/reset and explicit device-side completion: elevated PowerShell with the required firmware/runtime access.
@@ -434,9 +434,9 @@ See:
 
 Preview release line: `0.11.0-preview1`.
 
-In scope: AMD64 Windows 11/WinPE, DeviceLink generation, official CSV export, Device Association query/pre-association/removal, native association discovery/completion on supported full Windows builds, local firmware inspection/reset, diagnostics/health, safe initialization, the optional full-Windows operator GUI, multiple authentication methods, webhook transport and the optional Azure Function reference backend.
+In scope: AMD64 Windows 11/WinPE, ARM64 Windows 11 through the registered system runtime, DeviceLink generation, official CSV export, Device Association query/pre-association/removal, native association discovery/completion on supported full Windows builds, local firmware inspection/reset, diagnostics/health, safe initialization, the optional full-Windows operator GUI, multiple authentication methods, webhook transport and the optional Azure Function reference backend.
 
-Not currently in scope: ARM64, Device Preparation policy assignment, classic Autopilot v1 management, automatic destructive repair, cryptographic association-JWT signature verification, or production support guarantees.
+Not currently in scope: ARM64 WinPE or direct ARM64 DLL activation, Device Preparation policy assignment, classic Autopilot v1 management, automatic destructive repair, cryptographic association-JWT signature verification, or production support guarantees.
 
 ## Code signing
 

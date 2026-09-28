@@ -7,6 +7,15 @@ function Test-WindowsDeviceLinkSupport {
 
     $isWinPE = Test-Path -LiteralPath 'HKLM:\SYSTEM\CurrentControlSet\Control\MiniNT'
     $environment = if ($isWinPE) { 'WindowsPE' } else { 'Windows' }
+    $processArchitecture = $env:PROCESSOR_ARCHITECTURE
+    $operatingSystemArchitecture = $processArchitecture
+    try {
+        $processArchitecture = [Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture.ToString().ToUpperInvariant()
+        $operatingSystemArchitecture = [Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString().ToUpperInvariant()
+        if ($processArchitecture -eq 'X64') { $processArchitecture = 'AMD64' }
+        if ($operatingSystemArchitecture -eq 'X64') { $operatingSystemArchitecture = 'AMD64' }
+    }
+    catch { }
 
     if ($PSBoundParameters.ContainsKey('WindowsManagementServicePath')) {
         $candidatePath = $WindowsManagementServicePath
@@ -41,7 +50,7 @@ function Test-WindowsDeviceLinkSupport {
         return [pscustomobject]@{
             Supported        = $false
             Environment      = $environment
-            Architecture     = $env:PROCESSOR_ARCHITECTURE
+            Architecture     = $processArchitecture
             DllSource        = $dllSource
             ActivationMode   = $activationMode
             DllPath          = $candidatePath
@@ -70,7 +79,17 @@ function Test-WindowsDeviceLinkSupport {
         $signatureWarning = "Authenticode validation was unavailable: $($_.Exception.Message)"
     }
 
-    $architectureSupported = [Environment]::Is64BitProcess -and $env:PROCESSOR_ARCHITECTURE -eq 'AMD64'
+    $isEmulatedAmd64OnArm64 = $processArchitecture -eq 'AMD64' -and $operatingSystemArchitecture -eq 'ARM64'
+    $isAmd64Host = [Environment]::Is64BitProcess -and
+        $processArchitecture -eq 'AMD64' -and
+        -not $isEmulatedAmd64OnArm64
+    $isArm64RegisteredWindows = [Environment]::Is64BitProcess -and
+        $processArchitecture -eq 'ARM64' -and
+        $operatingSystemArchitecture -eq 'ARM64' -and
+        -not $isWinPE -and
+        $dllSource -eq 'System' -and
+        $activationMode -eq 'RegisteredWinRT'
+    $architectureSupported = $isAmd64Host -or $isArm64RegisteredWindows
     if ($architectureSupported) {
         if ($activationMode -eq 'RegisteredWinRT') {
             $nativeProbe = [WinPEDeviceLink.Native.DeviceLinkClient]::TestRegistered()
@@ -80,13 +99,13 @@ function Test-WindowsDeviceLinkSupport {
         }
     }
     else {
-        $nativeProbe = [pscustomobject]@{ Success = $false; Message = 'Native probe skipped because the current process is not AMD64 64-bit PowerShell.' }
+        $nativeProbe = [pscustomobject]@{ Success = $false; Message = 'Native probe skipped because this architecture and activation route is not supported.' }
     }
 
     [pscustomobject]@{
         Supported        = $architectureSupported -and $nativeProbe.Success
         Environment      = $environment
-        Architecture     = $env:PROCESSOR_ARCHITECTURE
+        Architecture     = $processArchitecture
         DllSource        = $dllSource
         ActivationMode   = $activationMode
         DllPath          = $resolvedPath
@@ -95,6 +114,6 @@ function Test-WindowsDeviceLinkSupport {
         MicrosoftSigned  = $isMicrosoftSigned
         NativeProbe      = $nativeProbe.Message
         Warning          = $signatureWarning
-        Reason           = if (-not $architectureSupported) { 'The current preview supports AMD64 64-bit PowerShell only.' } elseif (-not $nativeProbe.Success) { $nativeProbe.Message } else { $null }
+        Reason           = if ($isEmulatedAmd64OnArm64) { 'An emulated AMD64 PowerShell process cannot use the ARM64 Windows DeviceLink runtime. Start native ARM64 Windows PowerShell or PowerShell 7 ARM64.' } elseif (-not $architectureSupported) { 'Supported routes are native 64-bit AMD64 PowerShell, or native 64-bit ARM64 PowerShell on full Windows using the registered system runtime. ARM64 Windows PE and direct ARM64 DLL activation are not supported.' } elseif (-not $nativeProbe.Success) { $nativeProbe.Message } else { $null }
     }
 }

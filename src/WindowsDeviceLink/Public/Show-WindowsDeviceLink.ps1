@@ -504,10 +504,10 @@ function Show-WindowsDeviceLink {
     $script:WdlGuiSessionExpiresUtc = $null
     $script:WdlGuiSessionAuthenticated = $false
 
-    $deviceCard = New-Card -Title 'Device' -X 14 -Y 12 -Width 508 -Height 126
-    $connectionCard = New-Card -Title 'Connection' -X 536 -Y 12 -Width 508 -Height 126
-    $associationCard = New-Card -Title 'Local association' -X 14 -Y 150 -Width 508 -Height 126
-    $cloudCard = New-Card -Title 'Cloud association' -X 536 -Y 150 -Width 508 -Height 126
+    $deviceCard = New-Card -Title 'Device' -X 14 -Y 12 -Width 508 -Height 122
+    $connectionCard = New-Card -Title 'Connection' -X 536 -Y 12 -Width 508 -Height 122
+    $associationCard = New-Card -Title 'Local association' -X 14 -Y 142 -Width 508 -Height 122
+    $cloudCard = New-Card -Title 'Cloud association' -X 536 -Y 142 -Width 508 -Height 122
     $deviceCard.BackColor = $colorCardTint
     $connectionCard.BackColor = $colorCardTint
     $associationCard.BackColor = $colorCardTint
@@ -516,25 +516,25 @@ function Show-WindowsDeviceLink {
     $deviceAccent = New-Object System.Windows.Forms.Panel
     $deviceAccent.BackColor = $colorCardAccent
     $deviceAccent.Location = [System.Drawing.Point]::new(0,0)
-    $deviceAccent.Size = [System.Drawing.Size]::new(4,126)
+    $deviceAccent.Size = [System.Drawing.Size]::new(4,122)
     $deviceCard.Controls.Add($deviceAccent)
 
     $connectionAccent = New-Object System.Windows.Forms.Panel
     $connectionAccent.BackColor = $colorCardAccent
     $connectionAccent.Location = [System.Drawing.Point]::new(0,0)
-    $connectionAccent.Size = [System.Drawing.Size]::new(4,126)
+    $connectionAccent.Size = [System.Drawing.Size]::new(4,122)
     $connectionCard.Controls.Add($connectionAccent)
 
     $localAccent = New-Object System.Windows.Forms.Panel
     $localAccent.BackColor = $colorCardAccent
     $localAccent.Location = [System.Drawing.Point]::new(0,0)
-    $localAccent.Size = [System.Drawing.Size]::new(4,126)
+    $localAccent.Size = [System.Drawing.Size]::new(4,122)
     $associationCard.Controls.Add($localAccent)
 
     $ui.CloudAccent = New-Object System.Windows.Forms.Panel
     $ui.CloudAccent.BackColor = $colorCardAccent
     $ui.CloudAccent.Location = [System.Drawing.Point]::new(0,0)
-    $ui.CloudAccent.Size = [System.Drawing.Size]::new(4,126)
+    $ui.CloudAccent.Size = [System.Drawing.Size]::new(4,122)
     $cloudCard.Controls.Add($ui.CloudAccent)
 
     $ui.Manufacturer = New-ValuePair -Parent $deviceCard -Caption 'Manufacturer' -Y 34 -CaptionWidth 105 -ValueWidth 335
@@ -566,20 +566,20 @@ function Show-WindowsDeviceLink {
     $ui.CloudChecked = New-ValuePair -Parent $cloudCard -Caption 'Last checked' -Y 100 -CaptionWidth 105 -ValueWidth 335
     $ui.CloudChecked.Text = 'Not checked'
 
-    $actionsTitle = New-Object System.Windows.Forms.Label
-    $actionsTitle.Text = 'Actions'
-    $actionsTitle.Font = New-GuiFont -Size 11.5 -Style Bold
-    $actionsTitle.Location = [System.Drawing.Point]::new(16,150)
-    $actionsTitle.AutoSize = $true
-    $content.Controls.Add($actionsTitle)
+    $assignmentSectionTitle = New-Object System.Windows.Forms.Label
+    $assignmentSectionTitle.Text = 'Assignment'
+    $assignmentSectionTitle.Font = New-GuiFont -Size 11.5 -Style Bold
+    $assignmentSectionTitle.Location = [System.Drawing.Point]::new(16,268)
+    $assignmentSectionTitle.AutoSize = $true
+    $content.Controls.Add($assignmentSectionTitle)
 
-    $actionsPanel = New-Card -Title '' -X 14 -Y 176 -Width 1030 -Height 230
+    $assignmentPanel = New-Card -Title '' -X 14 -Y 294 -Width 1030 -Height 46
 
     $targetTenantRow = New-Object System.Windows.Forms.Panel
     $targetTenantRow.Location = [System.Drawing.Point]::new(0,0)
     $targetTenantRow.Size = [System.Drawing.Size]::new(1030,46)
     $targetTenantRow.BackColor = [System.Drawing.Color]::White
-    $actionsPanel.Controls.Add($targetTenantRow)
+    $assignmentPanel.Controls.Add($targetTenantRow)
 
     $targetTenantTitle = New-Object System.Windows.Forms.Label
     $targetTenantTitle.Text = 'Target tenant'
@@ -644,12 +644,6 @@ function Show-WindowsDeviceLink {
     $btnSignIn.UseVisualStyleBackColor = $true
     $btnSignIn.Visible = $usesInteractiveUserAuthentication
     $targetTenantRow.Controls.Add($btnSignIn)
-
-    $targetTenantSeparator = New-Object System.Windows.Forms.Panel
-    $targetTenantSeparator.BackColor = [System.Drawing.Color]::FromArgb(232,232,232)
-    $targetTenantSeparator.Location = [System.Drawing.Point]::new(14,45)
-    $targetTenantSeparator.Size = [System.Drawing.Size]::new(1002,1)
-    $targetTenantRow.Controls.Add($targetTenantSeparator)
 
     function Update-GuiTargetTenantDisplay {
         if (-not $targetTenantValue) { return }
@@ -718,8 +712,17 @@ function Show-WindowsDeviceLink {
 
     Update-GuiTargetTenantDisplay
 
+    $actionsTitle = New-Object System.Windows.Forms.Label
+    $actionsTitle.Text = 'Actions'
+    $actionsTitle.Font = New-GuiFont -Size 11.5 -Style Bold
+    $actionsTitle.Location = [System.Drawing.Point]::new(16,344)
+    $actionsTitle.AutoSize = $true
+    $content.Controls.Add($actionsTitle)
+
+    $actionsPanel = New-Card -Title '' -X 14 -Y 370 -Width 1030 -Height 184
+
     $assignmentRow = New-Object System.Windows.Forms.Panel
-    $assignmentRow.Location = [System.Drawing.Point]::new(0,46)
+    $assignmentRow.Location = [System.Drawing.Point]::new(0,0)
     $assignmentRow.Size = [System.Drawing.Size]::new(1030,46)
     $assignmentRow.BackColor = [System.Drawing.Color]::White
     $actionsPanel.Controls.Add($assignmentRow)
@@ -772,9 +775,9 @@ function Show-WindowsDeviceLink {
     $assignmentSeparator.Size = [System.Drawing.Size]::new(1002,1)
     $assignmentRow.Controls.Add($assignmentSeparator)
 
-    $rowTools = New-ActionRow -Parent $actionsPanel -Title 'Status' -Description 'Refresh local or cloud state.' -Y 92 -Buttons @('Refresh cloud','Refresh local')
-    $rowExport = New-ActionRow -Parent $actionsPanel -Title 'Export' -Description 'Export DeviceLink CSV for manual import in Intune.' -Y 138 -Buttons @('Export CSV')
-    $rowOffboard = New-ActionRow -Parent $actionsPanel -Title 'Offboarding' -Description 'Remove the cloud association, reset local state, or both.' -Y 184 -Buttons @('Remove cloud','Reset local','Remove both')
+    $rowTools = New-ActionRow -Parent $actionsPanel -Title 'Status' -Description 'Refresh local or cloud state.' -Y 46 -Buttons @('Refresh cloud','Refresh local')
+    $rowExport = New-ActionRow -Parent $actionsPanel -Title 'Export' -Description 'Export DeviceLink CSV for manual import in Intune.' -Y 92 -Buttons @('Export CSV')
+    $rowOffboard = New-ActionRow -Parent $actionsPanel -Title 'Offboarding' -Description 'Remove the cloud association, reset local state, or both.' -Y 138 -Buttons @('Remove cloud','Reset local','Remove both')
 
     $offboardSeparator = @(
         $rowOffboard.Panel.Controls |
@@ -822,12 +825,12 @@ function Show-WindowsDeviceLink {
         $btnFullOffboard
     )
 
-    $actionsPanel.Height = 230
+    $actionsPanel.Height = 184
 
     $activityTitle = New-Object System.Windows.Forms.Label
     $activityTitle.Text = 'Activity'
     $activityTitle.Font = New-GuiFont -Size 11 -Style Bold
-    $activityTitle.Location = [System.Drawing.Point]::new(16,564)
+    $activityTitle.Location = [System.Drawing.Point]::new(16,558)
     $activityTitle.AutoSize = $true
     $content.Controls.Add($activityTitle)
 
@@ -845,7 +848,7 @@ function Show-WindowsDeviceLink {
     $btnClearActivity.FlatStyle = [System.Windows.Forms.FlatStyle]::Standard
     $content.Controls.Add($btnClearActivity)
 
-    $activityCard = New-Card -Title '' -X 14 -Y 590 -Width 1030 -Height 118
+    $activityCard = New-Card -Title '' -X 14 -Y 584 -Width 1030 -Height 118
 
     $consoleBox = New-Object System.Windows.Forms.TextBox
     $consoleBox.Location = [System.Drawing.Point]::new(12,10)
@@ -1251,18 +1254,45 @@ function Show-WindowsDeviceLink {
             $environmentText = [string]$support.Environment
         }
 
-        $ui.OperatingSystem.Text = $environmentText
+        $processArchitecture = [string]$support.Architecture
+        $operatingSystemArchitecture = $processArchitecture
+        try {
+            $processArchitecture = [Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture.ToString().ToUpperInvariant()
+            $operatingSystemArchitecture = [Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString().ToUpperInvariant()
+            if ($processArchitecture -eq 'X64') { $processArchitecture = 'AMD64' }
+            if ($operatingSystemArchitecture -eq 'X64') { $operatingSystemArchitecture = 'AMD64' }
+        }
+        catch { }
+
+        $environmentDisplayText = if ([string]::IsNullOrWhiteSpace($operatingSystemArchitecture)) {
+            $environmentText
+        }
+        else {
+            "$environmentText ($operatingSystemArchitecture)"
+        }
+
+        $ui.OperatingSystem.Text = $environmentDisplayText
+
+        $architectureDetails = @("Architecture: $operatingSystemArchitecture")
+        if ($processArchitecture -and $processArchitecture -ne $operatingSystemArchitecture) {
+            $architectureDetails += "PowerShell process: $processArchitecture (emulated)"
+        }
+        elseif ($processArchitecture) {
+            $architectureDetails += "PowerShell process: $processArchitecture"
+        }
 
         $environmentToolTip = if ($support.Supported) {
             @(
-                $environmentText
+                $environmentDisplayText
+                $architectureDetails
                 "Activation: $($support.ActivationMode)"
                 "Runtime: $($support.DllVersion)"
             ) -join [Environment]::NewLine
         }
         else {
             @(
-                $environmentText
+                $environmentDisplayText
+                $architectureDetails
                 "Runtime unavailable: $($support.Reason)"
             ) -join [Environment]::NewLine
         }
@@ -2146,15 +2176,15 @@ function Show-WindowsDeviceLink {
         $halfWidth = [Math]::Floor(($fullWidth - $gap) / 2)
 
         $deviceCard.Location = [System.Drawing.Point]::new(14,12)
-        $deviceCard.Size = [System.Drawing.Size]::new([int]$halfWidth,126)
+        $deviceCard.Size = [System.Drawing.Size]::new([int]$halfWidth,122)
         $connectionCard.Location = [System.Drawing.Point]::new((14 + $halfWidth + $gap),12)
-        $connectionCard.Size = [System.Drawing.Size]::new([int]$halfWidth,126)
+        $connectionCard.Size = [System.Drawing.Size]::new([int]$halfWidth,122)
 
-        $associationCard.Location = [System.Drawing.Point]::new(14,150)
-        $associationCard.Size = [System.Drawing.Size]::new([int]$halfWidth,126)
-        $cloudCard.Location = [System.Drawing.Point]::new((14 + $halfWidth + $gap),150)
-        $cloudCard.Size = [System.Drawing.Size]::new([int]$halfWidth,126)
-        $cardsBottom = 276
+        $associationCard.Location = [System.Drawing.Point]::new(14,142)
+        $associationCard.Size = [System.Drawing.Size]::new([int]$halfWidth,122)
+        $cloudCard.Location = [System.Drawing.Point]::new((14 + $halfWidth + $gap),142)
+        $cloudCard.Size = [System.Drawing.Size]::new([int]$halfWidth,122)
+        $cardsBottom = 264
 
         foreach ($card in @($deviceCard,$connectionCard,$associationCard,$cloudCard)) {
             foreach ($control in $card.Controls) {
@@ -2164,10 +2194,10 @@ function Show-WindowsDeviceLink {
             }
         }
 
-        $actionsY = $cardsBottom + 12
-        $actionsTitle.Location = [System.Drawing.Point]::new(16,$actionsY)
-        $actionsPanel.Location = [System.Drawing.Point]::new(14,($actionsY + 26))
-        $actionsPanel.Width = $fullWidth
+        $assignmentY = $cardsBottom + 4
+        $assignmentSectionTitle.Location = [System.Drawing.Point]::new(16,$assignmentY)
+        $assignmentPanel.Location = [System.Drawing.Point]::new(14,($assignmentY + 26))
+        $assignmentPanel.Width = $fullWidth
 
         $targetTenantRow.Width = $fullWidth
         $btnSignIn.Left = $fullWidth - 16 - $btnSignIn.Width
@@ -2184,20 +2214,23 @@ function Show-WindowsDeviceLink {
             $targetValueRight = if ($usesInteractiveUserAuthentication) { $btnSignIn.Left - 8 } else { $fullWidth - 16 }
             $targetTenantValue.Width = [Math]::Max(220,$targetValueRight - $targetTenantValue.Left)
         }
-        $targetTenantSeparator.Width = [Math]::Max(480,$fullWidth - 28)
+        $actionsY = $assignmentPanel.Bottom + 4
+        $actionsTitle.Location = [System.Drawing.Point]::new(16,$actionsY)
+        $actionsPanel.Location = [System.Drawing.Point]::new(14,($actionsY + 26))
+        $actionsPanel.Width = $fullWidth
 
         $assignmentRow.Width = $fullWidth
         $btnAssociateHost.Left = $fullWidth - 16 - $btnAssociateHost.Width
         $btnAssign.Left = $btnAssociateHost.Left - 8 - $btnAssign.Width
         $assignmentSeparator.Width = [Math]::Max(480,$fullWidth - 28)
 
-        $activityY = $actionsPanel.Bottom + 14
+        $activityY = $actionsPanel.Bottom + 4
         $activityTitle.Location = [System.Drawing.Point]::new(16,$activityY)
 
         # Align Copy and Clear to the same right edge used by the action buttons.
         # Action buttons sit 16 px inside the right edge of the Actions panel.
         $clearX = $actionsPanel.Right - 16 - $btnClearActivity.Width
-        $clearY = $activityY - 5
+        $clearY = $activityY
         $btnClearActivity.Location = [System.Drawing.Point]::new($clearX,$clearY)
         $copyX = $clearX - 8 - $btnCopyActivity.Width
         $btnCopyActivity.Location = [System.Drawing.Point]::new($copyX,$clearY)
@@ -2208,9 +2241,11 @@ function Show-WindowsDeviceLink {
 
         # Let Activity consume the remaining client area instead of leaving an
         # unused band below the log on taller WinPE and Windows displays.
-        $activityHeight = [Math]::Max(118,$content.ClientSize.Height - $activityCard.Top - 12)
+        # Keep the full dashboard visible on 768p-class displays while leaving
+        # enough room for a useful multi-line activity log.
+        $activityHeight = [Math]::Max(96,$content.ClientSize.Height - $activityCard.Top - 12)
         $activityCard.Height = $activityHeight
-        $consoleBox.Height = [Math]::Max(96,$activityHeight - 22)
+        $consoleBox.Height = [Math]::Max(74,$activityHeight - 22)
 
         foreach ($row in @($rowTools,$rowExport,$rowOffboard)) {
             $row.Panel.Width = $fullWidth

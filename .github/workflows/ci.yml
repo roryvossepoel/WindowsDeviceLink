@@ -53,6 +53,12 @@ jobs:
             -ModulePath $env:WDL_MODULE_PATH `
             -PackageRoot $env:WDL_PACKAGE_ROOT
 
+      - name: Validate architecture support policy
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          .\tests\Architecture-Support-Validation.ps1
+
       - name: Validate DeviceLinkManager native wrapper
         shell: powershell
         run: |

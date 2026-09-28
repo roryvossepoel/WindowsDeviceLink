@@ -74,6 +74,14 @@ function Test-WindowsDeviceLinkRuntime {
 
     $environment = if (Test-Path -LiteralPath 'HKLM:\SYSTEM\CurrentControlSet\Control\MiniNT') { 'WindowsPE' } else { 'Windows' }
     $hostArchitecture = $env:PROCESSOR_ARCHITECTURE
+    $operatingSystemArchitecture = $hostArchitecture
+    try {
+        $hostArchitecture = [Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture.ToString().ToUpperInvariant()
+        $operatingSystemArchitecture = [Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString().ToUpperInvariant()
+        if ($hostArchitecture -eq 'X64') { $hostArchitecture = 'AMD64' }
+        if ($operatingSystemArchitecture -eq 'X64') { $operatingSystemArchitecture = 'AMD64' }
+    }
+    catch { }
     $resolvedPath = $null
 
     try {
@@ -121,8 +129,17 @@ function Test-WindowsDeviceLinkRuntime {
         $signatureNote = 'Authenticode inspection was unavailable in the current environment.'
     }
 
-    $hostSupported = [Environment]::Is64BitProcess -and $hostArchitecture -eq 'AMD64'
-    $dllArchCompatible = $pe.Architecture -eq 'AMD64'
+    $isEmulatedAmd64OnArm64 = $hostArchitecture -eq 'AMD64' -and $operatingSystemArchitecture -eq 'ARM64'
+    $isAmd64Host = [Environment]::Is64BitProcess -and
+        $hostArchitecture -eq 'AMD64' -and
+        -not $isEmulatedAmd64OnArm64
+    $isArm64FullWindowsHost = [Environment]::Is64BitProcess -and
+        $hostArchitecture -eq 'ARM64' -and
+        $operatingSystemArchitecture -eq 'ARM64' -and
+        $environment -eq 'Windows'
+    $hostSupported = $isAmd64Host -or $isArm64FullWindowsHost
+    $dllArchCompatible = ($isAmd64Host -and $pe.Architecture -eq 'AMD64') -or
+        ($isArm64FullWindowsHost -and $pe.Architecture -eq 'ARM64')
 
     if (-not $hostSupported) {
         return [pscustomobject]@{
@@ -143,7 +160,7 @@ function Test-WindowsDeviceLinkRuntime {
             LoadActivationSucceeded = $false
             NativeProbe             = $null
             NativeErrorCode         = $null
-            BlockingReason          = 'The current prototype supports AMD64 64-bit PowerShell only.'
+            BlockingReason          = if ($isEmulatedAmd64OnArm64) { 'An emulated AMD64 PowerShell process cannot use the ARM64 Windows DeviceLink runtime. Start native ARM64 Windows PowerShell or PowerShell 7 ARM64.' } else { 'Supported hosts are native 64-bit AMD64 PowerShell, or native 64-bit ARM64 PowerShell on full Windows. ARM64 Windows PE is not supported.' }
         }
     }
 
@@ -166,7 +183,7 @@ function Test-WindowsDeviceLinkRuntime {
             LoadActivationSucceeded = $false
             NativeProbe             = $null
             NativeErrorCode         = $null
-            BlockingReason          = if ($pe.Error) { $pe.Error } else { "The supplied DLL architecture '$($pe.Architecture)' is not compatible with the AMD64 prototype." }
+            BlockingReason          = if ($pe.Error) { $pe.Error } else { "The supplied DLL architecture '$($pe.Architecture)' does not match the supported host architecture '$hostArchitecture'." }
         }
     }
 

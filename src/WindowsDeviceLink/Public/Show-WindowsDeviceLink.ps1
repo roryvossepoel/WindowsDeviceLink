@@ -569,7 +569,7 @@ function Show-WindowsDeviceLink {
     $assignmentSectionTitle = New-Object System.Windows.Forms.Label
     $assignmentSectionTitle.Text = 'Assignment'
     $assignmentSectionTitle.Font = New-GuiFont -Size 11.5 -Style Bold
-    $assignmentSectionTitle.Location = [System.Drawing.Point]::new(16,272)
+    $assignmentSectionTitle.Location = [System.Drawing.Point]::new(16,268)
     $assignmentSectionTitle.AutoSize = $true
     $content.Controls.Add($assignmentSectionTitle)
 
@@ -715,7 +715,7 @@ function Show-WindowsDeviceLink {
     $actionsTitle = New-Object System.Windows.Forms.Label
     $actionsTitle.Text = 'Actions'
     $actionsTitle.Font = New-GuiFont -Size 11.5 -Style Bold
-    $actionsTitle.Location = [System.Drawing.Point]::new(16,348)
+    $actionsTitle.Location = [System.Drawing.Point]::new(16,344)
     $actionsTitle.AutoSize = $true
     $content.Controls.Add($actionsTitle)
 
@@ -830,7 +830,7 @@ function Show-WindowsDeviceLink {
     $activityTitle = New-Object System.Windows.Forms.Label
     $activityTitle.Text = 'Activity'
     $activityTitle.Font = New-GuiFont -Size 11 -Style Bold
-    $activityTitle.Location = [System.Drawing.Point]::new(16,562)
+    $activityTitle.Location = [System.Drawing.Point]::new(16,558)
     $activityTitle.AutoSize = $true
     $content.Controls.Add($activityTitle)
 
@@ -2194,9 +2194,9 @@ function Show-WindowsDeviceLink {
             }
         }
 
-        $assignmentY = $cardsBottom + 8
+        $assignmentY = $cardsBottom + 4
         $assignmentSectionTitle.Location = [System.Drawing.Point]::new(16,$assignmentY)
-        $assignmentPanel.Location = [System.Drawing.Point]::new(14,($assignmentY + 22))
+        $assignmentPanel.Location = [System.Drawing.Point]::new(14,($assignmentY + 26))
         $assignmentPanel.Width = $fullWidth
 
         $targetTenantRow.Width = $fullWidth
@@ -2214,9 +2214,9 @@ function Show-WindowsDeviceLink {
             $targetValueRight = if ($usesInteractiveUserAuthentication) { $btnSignIn.Left - 8 } else { $fullWidth - 16 }
             $targetTenantValue.Width = [Math]::Max(220,$targetValueRight - $targetTenantValue.Left)
         }
-        $actionsY = $assignmentPanel.Bottom + 8
+        $actionsY = $assignmentPanel.Bottom + 4
         $actionsTitle.Location = [System.Drawing.Point]::new(16,$actionsY)
-        $actionsPanel.Location = [System.Drawing.Point]::new(14,($actionsY + 22))
+        $actionsPanel.Location = [System.Drawing.Point]::new(14,($actionsY + 26))
         $actionsPanel.Width = $fullWidth
 
         $assignmentRow.Width = $fullWidth
@@ -2224,7 +2224,7 @@ function Show-WindowsDeviceLink {
         $btnAssign.Left = $btnAssociateHost.Left - 8 - $btnAssign.Width
         $assignmentSeparator.Width = [Math]::Max(480,$fullWidth - 28)
 
-        $activityY = $actionsPanel.Bottom + 8
+        $activityY = $actionsPanel.Bottom + 4
         $activityTitle.Location = [System.Drawing.Point]::new(16,$activityY)
 
         # Align Copy and Clear to the same right edge used by the action buttons.
@@ -2235,7 +2235,7 @@ function Show-WindowsDeviceLink {
         $copyX = $clearX - 8 - $btnCopyActivity.Width
         $btnCopyActivity.Location = [System.Drawing.Point]::new($copyX,$clearY)
 
-        $activityCard.Location = [System.Drawing.Point]::new(14,($activityY + 22))
+        $activityCard.Location = [System.Drawing.Point]::new(14,($activityY + 26))
         $activityCard.Width = $fullWidth
         $consoleBox.Width = $fullWidth - 24
 

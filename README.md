@@ -18,6 +18,10 @@ Get-WindowsDeviceLink
 Get-WindowsDeviceLink | Register-WindowsDeviceLink -Method Interactive
 ```
 
+![WindowsDeviceLink PowerShell CLI status on Windows 11 ARM64](docs/images/cli-status-arm64.png)
+
+*Example output from `Get-WindowsDeviceLinkStatus` on Windows 11 (ARM64). This lookup found no association in the queried tenant (`NotAssociated`). Identifying details have been replaced with example values.*
+
 **Optional GUI** — open the operator interface:
 
 ```powershell

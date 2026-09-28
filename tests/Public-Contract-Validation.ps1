@@ -184,8 +184,8 @@ Write-Host 'PASS: online status keeps BIOS serial fallback for cloud lookup'
 
 
 $moduleData = Import-PowerShellDataFile -Path $resolvedModulePath
-Assert-True ([string]$moduleData.PrivateData.PSData.ProjectUri -eq 'https://github.com/roryvossepoel/WindowsDeviceLink-Public') 'ProjectUri does not point to the canonical public repository.'
-Assert-True ([string]$moduleData.PrivateData.PSData.LicenseUri -like 'https://github.com/roryvossepoel/WindowsDeviceLink-Public/*') 'LicenseUri does not point to the canonical public repository.'
+Assert-True ([string]$moduleData.PrivateData.PSData.ProjectUri -eq 'https://github.com/roryvossepoel/WindowsDeviceLink') 'ProjectUri does not point to the canonical public repository.'
+Assert-True ([string]$moduleData.PrivateData.PSData.LicenseUri -like 'https://github.com/roryvossepoel/WindowsDeviceLink/*') 'LicenseUri does not point to the canonical public repository.'
 Write-Host 'PASS: package provenance metadata points to the public repository'
 
 Write-Host ''

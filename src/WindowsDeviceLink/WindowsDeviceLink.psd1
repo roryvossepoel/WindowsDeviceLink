@@ -38,8 +38,8 @@
     PrivateData       = @{
         PSData = @{
             Tags       = @('Windows', 'WinPE', 'Intune', 'Autopilot', 'DevicePreparation', 'DeviceLink', 'DeviceAssociation', 'Firmware', 'UEFI', 'Webhook', 'TPM', 'JWT')
-            LicenseUri = 'https://github.com/roryvossepoel/WindowsDeviceLink-Public/blob/main/LICENSE'
-            ProjectUri = 'https://github.com/roryvossepoel/WindowsDeviceLink-Public'
+            LicenseUri = 'https://github.com/roryvossepoel/WindowsDeviceLink/blob/main/LICENSE'
+            ProjectUri = 'https://github.com/roryvossepoel/WindowsDeviceLink'
             Prerelease = 'preview1'
         }
     }

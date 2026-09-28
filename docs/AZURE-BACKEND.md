@@ -69,7 +69,7 @@ The Bicep and generated ARM files under `infrastructure/function-app` are retain
 experimental infrastructure code. They are not currently the recommended deployment
 route. A reproducible Deploy to Azure experience, including clean deployment, safe
 redeployment and secret preservation, is tracked in
-[issue #43](https://github.com/roryvossepoel/WindowsDeviceLink-Public/issues/43).
+[issue #43](https://github.com/roryvossepoel/WindowsDeviceLink/issues/43).
 
 ## Authentication
 

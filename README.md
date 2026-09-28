@@ -380,7 +380,7 @@ For this preview, the supported deployment route is to configure the Azure resou
 and deploy the supplied Function App package manually. The repository also contains
 experimental Bicep/ARM infrastructure code, but that route is not yet presented as a
 supported Deploy to Azure experience. Its hardening and end-to-end validation are
-tracked in [issue #43](https://github.com/roryvossepoel/WindowsDeviceLink-Public/issues/43).
+tracked in [issue #43](https://github.com/roryvossepoel/WindowsDeviceLink/issues/43).
 
 For cross-tenant use, a multitenant App Registration with certificate authentication is preferred. Client-secret authentication remains a fallback.
 

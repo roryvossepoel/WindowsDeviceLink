@@ -173,8 +173,8 @@ foreach ($required in @(
     '-not ($usesInteractiveUserAuthentication -and $script:WdlGuiSessionAuthenticated)',
     '$targetTenantValue.Width = [Math]::Max(220,$targetValueRight - $targetTenantValue.Left)',
     '$activityCard.Height = $activityHeight',
-    '$activityHeight = [Math]::Max(72,$content.ClientSize.Height - $activityCard.Top - 12)',
-    '$consoleBox.Height = [Math]::Max(50,$activityHeight - 22)',
+    '$activityHeight = [Math]::Max(96,$content.ClientSize.Height - $activityCard.Top - 12)',
+    '$consoleBox.Height = [Math]::Max(74,$activityHeight - 22)',
     '$btnAssign.FlatStyle = [System.Windows.Forms.FlatStyle]::Standard',
     'New-GuiFont',
     '$colorCardTint',
@@ -268,7 +268,7 @@ if ($source -notmatch [regex]::Escape("-Title 'Export' -Description 'Export Devi
 
 foreach ($layoutContract in @(
     '$targetTenantRow.Size = [System.Drawing.Size]::new(1030,46)',
-    '$assignmentPanel = New-Card -Title '''' -X 14 -Y 314 -Width 1030 -Height 46',
+    '$assignmentPanel = New-Card -Title '''' -X 14 -Y 294 -Width 1030 -Height 46',
     '$btnSignIn.Size = [System.Drawing.Size]::new(118,28)',
     '$assignmentRow.Size = [System.Drawing.Size]::new(1030,46)',
     '$tenantSelector.ItemHeight = 22',

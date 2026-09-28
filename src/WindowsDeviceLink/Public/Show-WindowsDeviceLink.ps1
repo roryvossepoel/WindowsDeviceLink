@@ -2241,9 +2241,11 @@ function Show-WindowsDeviceLink {
 
         # Let Activity consume the remaining client area instead of leaving an
         # unused band below the log on taller WinPE and Windows displays.
-        $activityHeight = [Math]::Max(118,$content.ClientSize.Height - $activityCard.Top - 12)
+        # Keep the full dashboard visible on 768p-class displays. Activity can
+        # contract to two log lines and expands automatically on taller screens.
+        $activityHeight = [Math]::Max(72,$content.ClientSize.Height - $activityCard.Top - 12)
         $activityCard.Height = $activityHeight
-        $consoleBox.Height = [Math]::Max(96,$activityHeight - 22)
+        $consoleBox.Height = [Math]::Max(50,$activityHeight - 22)
 
         foreach ($row in @($rowTools,$rowExport,$rowOffboard)) {
             $row.Panel.Width = $fullWidth

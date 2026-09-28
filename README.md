@@ -296,6 +296,7 @@ This shows the default assignment path. A tenant move renews the local identity 
 | Configure a named tenant or tenant selector | [Configuration examples](docs/CONFIGURATION.md) |
 | Remove an association correctly | [Offboarding](docs/OFFBOARDING.md) |
 | Check validation and remaining test work | [Testing status](TESTING.md) |
+| Follow the remaining polish and live-test work in order | [Current checklist](docs/VALIDATION-CHECKLIST.md) |
 
 <details>
 <summary>Browse all technical documentation</summary>

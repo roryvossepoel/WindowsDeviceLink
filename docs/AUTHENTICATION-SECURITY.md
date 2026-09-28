@@ -1,6 +1,6 @@
 # Authentication and deployment security
 
-## Supported routes in 0.11
+## Supported routes
 
 | Route | UI and CLI | Credential handling |
 |---|---|---|

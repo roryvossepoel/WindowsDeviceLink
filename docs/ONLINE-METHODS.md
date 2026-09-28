@@ -27,7 +27,7 @@ Initialize-WindowsDeviceLink
 
 `Get-WindowsDeviceLink -Online` has been removed. This is an intentional breaking preview change: local identity retrieval no longer changes meaning when a switch is supplied.
 
-## Authentication routes (0.11.0)
+## Authentication routes
 
 Both UI and CLI support the same decision:
 
@@ -134,7 +134,21 @@ With `-Method DeviceCode`, one access token is obtained at the start and reused 
 
 ## Unattended endpoint or WinPE
 
-Prefer `Webhook` for direct registration when Graph secrets or certificates should not be stored on the endpoint:
+Use Backend mode for unattended tenant lookup, assignment and verification. Supply
+the API key as a SecureString through your protected runtime configuration:
+
+```powershell
+Set-WindowsDeviceLinkTenant `
+    -BackendUri 'https://backend.example.com/api/devicelink' `
+    -BackendApiKey $apiKey `
+    -TargetTenantId '<target-tenant-id>'
+```
+
+The backend keeps Graph credentials in Azure and checks all configured tenants.
+See [tenant assignment modes](TENANT-ASSIGNMENT-MODES.md) for New, no-op and Move behavior.
+Direct DeviceCode in WinPE still requires an operator to complete sign-in.
+
+The low-level Webhook transport remains available for explicit pre-association:
 
 ```powershell
 $deviceLink = Get-WindowsDeviceLink
@@ -148,7 +162,9 @@ $deviceLink | Register-WindowsDeviceLink `
 
 The Azure Function backend owns tenant routing and Graph authentication.
 
-For idempotent `Initialize-WindowsDeviceLink`, use one of its supported direct authentication methods because initialization requires tenant-side lookup and verification.
+`Initialize-WindowsDeviceLink` also supports Direct and Backend parameter sets, but
+blocks an association found in a different tenant. Use `Set-WindowsDeviceLinkTenant`
+for the guarded Backend tenant-assignment workflow, including verified moves.
 
 ## Existing Graph SDK session
 

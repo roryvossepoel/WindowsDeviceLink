@@ -1251,18 +1251,45 @@ function Show-WindowsDeviceLink {
             $environmentText = [string]$support.Environment
         }
 
-        $ui.OperatingSystem.Text = $environmentText
+        $processArchitecture = [string]$support.Architecture
+        $operatingSystemArchitecture = $processArchitecture
+        try {
+            $processArchitecture = [Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture.ToString().ToUpperInvariant()
+            $operatingSystemArchitecture = [Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString().ToUpperInvariant()
+            if ($processArchitecture -eq 'X64') { $processArchitecture = 'AMD64' }
+            if ($operatingSystemArchitecture -eq 'X64') { $operatingSystemArchitecture = 'AMD64' }
+        }
+        catch { }
+
+        $environmentDisplayText = if ([string]::IsNullOrWhiteSpace($operatingSystemArchitecture)) {
+            $environmentText
+        }
+        else {
+            "$environmentText ($operatingSystemArchitecture)"
+        }
+
+        $ui.OperatingSystem.Text = $environmentDisplayText
+
+        $architectureDetails = @("Architecture: $operatingSystemArchitecture")
+        if ($processArchitecture -and $processArchitecture -ne $operatingSystemArchitecture) {
+            $architectureDetails += "PowerShell process: $processArchitecture (emulated)"
+        }
+        elseif ($processArchitecture) {
+            $architectureDetails += "PowerShell process: $processArchitecture"
+        }
 
         $environmentToolTip = if ($support.Supported) {
             @(
-                $environmentText
+                $environmentDisplayText
+                $architectureDetails
                 "Activation: $($support.ActivationMode)"
                 "Runtime: $($support.DllVersion)"
             ) -join [Environment]::NewLine
         }
         else {
             @(
-                $environmentText
+                $environmentDisplayText
+                $architectureDetails
                 "Runtime unavailable: $($support.Reason)"
             ) -join [Environment]::NewLine
         }

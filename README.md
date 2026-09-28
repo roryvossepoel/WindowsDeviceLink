@@ -6,6 +6,10 @@
 
 PowerShell module for **Windows Autopilot Device Preparation Device Association** on physical Windows devices.
 
+![WindowsDeviceLink operator GUI in Backend mode](docs/images/gui-backend-overview.png)
+
+*WindowsDeviceLink in Backend mode on Windows 11 (ARM64). Identifying details have been replaced with example values. See the [operator GUI guide](docs/GUI.md).*
+
 WindowsDeviceLink can:
 
 - generate/read the TPM-backed DeviceLink identity;

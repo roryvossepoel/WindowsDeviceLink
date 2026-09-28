@@ -6,6 +6,24 @@
 
 PowerShell module for **Windows Autopilot Device Preparation Device Association** on physical Windows devices.
 
+Use WindowsDeviceLink through **PowerShell cmdlets (CLI)** or the **optional graphical interface (GUI)**. The cmdlets can be used directly in the console or integrated into your own scripts and deployment workflows.
+
+**PowerShell CLI** — after [installation](docs/INSTALLATION.md):
+
+```powershell
+# Read the local DeviceLink identity
+Get-WindowsDeviceLink
+
+# Pre-associate the device with the tenant used for sign-in (Direct mode)
+Get-WindowsDeviceLink | Register-WindowsDeviceLink -Method Interactive
+```
+
+**Optional GUI** — open the operator interface:
+
+```powershell
+Show-WindowsDeviceLink
+```
+
 ![WindowsDeviceLink operator GUI in Backend mode](docs/images/gui-backend-overview.png)
 
 *WindowsDeviceLink in Backend mode on Windows 11 (ARM64). Identifying details have been replaced with example values. See the [operator GUI guide](docs/GUI.md).*

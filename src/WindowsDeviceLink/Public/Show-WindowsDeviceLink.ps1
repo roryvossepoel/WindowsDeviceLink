@@ -853,7 +853,7 @@ function Show-WindowsDeviceLink {
     $consoleBox.Multiline = $true
     $consoleBox.ReadOnly = $true
     $consoleBox.ScrollBars = [System.Windows.Forms.ScrollBars]::Vertical
-    $consoleBox.WordWrap = $false
+    $consoleBox.WordWrap = $true
     $consoleBox.Font = New-GuiFont -Family 'Consolas' -Size 8 -Style Regular
     $consoleBox.BackColor = [System.Drawing.Color]::FromArgb(250,250,250)
     $consoleBox.BorderStyle = [System.Windows.Forms.BorderStyle]::None

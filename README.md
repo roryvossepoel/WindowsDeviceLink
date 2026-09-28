@@ -4,114 +4,95 @@
 [![PowerShell Gallery Downloads](https://img.shields.io/powershellgallery/dt/WindowsDeviceLink)](https://www.powershellgallery.com/packages/WindowsDeviceLink)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-PowerShell module for **Windows Autopilot Device Preparation Device Association** on physical Windows devices.
+**Prepare Windows devices for Windows Autopilot device preparation — from PowerShell or an optional GUI.**
 
-Use WindowsDeviceLink through **PowerShell cmdlets (CLI)** or the **optional graphical interface (GUI)**. The cmdlets can be used directly in the console or integrated into your own scripts and deployment workflows.
+WindowsDeviceLink is an open-source PowerShell module for **Device Association**. Pre-associate a physical device with an Intune tenant before OOBE, inspect its local and cloud state, and manage association, recovery and offboarding. Use it on supported Windows 11 devices or prepare devices from AMD64 Windows PE.
 
-**PowerShell CLI** — after [installation](docs/INSTALLATION.md):
+[Get started](#quick-start) · [Choose Direct or Backend](#choose-a-mode) · [Lifecycle](#device-association-lifecycle) · [FAQ](docs/FAQ.md)
+
+## Why use WindowsDeviceLink?
+
+- **Prepare devices before Windows deployment.** Generate the DeviceLink identity and pre-associate from Windows 11 or compatible WinPE; Windows can complete association during OOBE.
+- **Use the interface that fits the job.** Run PowerShell cmdlets from the console, integrate them into deployment scripts, or use the operator GUI.
+- **Start with one tenant, extend to multiple customers.** Use Direct mode with operator sign-in, or add the optional Azure Function backend for multitenant lookup, unattended assignment and controlled tenant moves.
+- **See what is happening.** Inspect local firmware and tenant-side state, run diagnostics, export the official DeviceLink CSV and follow a documented offboarding flow.
+- **Transition from classic Autopilot.** With Device Association, the existing Autopilot v1 registration can remain while the next OOBE deployment uses device preparation. [How this works](#moving-from-autopilot-v1).
+
+> [!IMPORTANT]
+> **Preview software — `0.12.0-preview1`.** Releases are unsigned. Native DeviceLink operations use undocumented Windows Runtime interfaces and cloud operations use Microsoft Graph beta APIs. Validate your intended workflow before wider deployment. See [support boundaries](#scope) and [testing status](TESTING.md).
+
+## Quick start
+
+On a supported **physical Windows 11 device**, open **native 64-bit Windows PowerShell 5.1 as administrator**. On ARM64, use native ARM64 PowerShell. See [requirements](#requirements) or the separate [WinPE setup](#windows-pe-workflow).
 
 ```powershell
-# Read the local DeviceLink identity
-Get-WindowsDeviceLink
-
-# Pre-associate the device with the tenant used for sign-in (Direct mode)
-Get-WindowsDeviceLink | Register-WindowsDeviceLink -Method Interactive
+Install-Module WindowsDeviceLink -Repository PSGallery -AllowPrerelease -Force
+Import-Module WindowsDeviceLink
+Test-WindowsDeviceLinkSupport
 ```
+
+Continue with a supported device. Direct cloud operations require delegated Microsoft Graph permission `DeviceManagementServiceConfig.ReadWrite.All` and an operator with sufficient rights. See [authentication setup](docs/APP-REGISTRATION.md).
+
+### PowerShell CLI
+
+Pre-associate the device with the tenant used for sign-in, then inspect its status:
+
+```powershell
+Set-WindowsDeviceLinkTenant -Method Interactive
+
+Get-WindowsDeviceLinkStatus -Online -Method Interactive |
+    Format-List
+```
+
+A tenant ID is optional: the sign-in context selects the tenant. Supply `-TenantId '<tenant-id>'` when the target must be explicit. Direct mode checks that tenant only. Pre-association creates the tenant-side record; it does not enroll Windows or install apps.
+
+<details>
+<summary>View a PowerShell CLI status example</summary>
 
 ![WindowsDeviceLink PowerShell CLI status on Windows 11 ARM64](docs/images/cli-status-arm64.png)
 
-*Example output from `Get-WindowsDeviceLinkStatus` on Windows 11 (ARM64). This lookup found no association in the queried tenant (`NotAssociated`). Identifying details have been replaced with example values.*
+*Example status lookup on Windows 11 (ARM64). This particular lookup found no association in the queried tenant (`NotAssociated`); it is not an example of a completed pre-association. Identifying details have been replaced with example values.*
 
-**Optional GUI** — open the operator interface:
+</details>
+
+### Optional GUI
 
 ```powershell
 Show-WindowsDeviceLink
 ```
+
+**Pre-associate is available in both Windows 11 and compatible AMD64 Windows PE, through the CLI and GUI.** Windows 11 defaults to `Interactive` sign-in; Windows PE defaults to `DeviceCode`. Backend mode is available in both environments when configured.
+
+The **Associate** action completes the local device-side association and is available only on supported full Windows 11. In WinPE, pre-associate the device, install Windows 11, and let Windows complete association during OOBE. The GUI also provides status, CSV export, diagnostics and offboarding actions.
 
 ![WindowsDeviceLink operator GUI in Backend mode](docs/images/gui-backend-overview.png)
 
-*WindowsDeviceLink in Backend mode on Windows 11 (ARM64). Identifying details have been replaced with example values. See the [operator GUI guide](docs/GUI.md).*
+*The same operator interface shown in optional Backend mode on Windows 11 (ARM64), with example identifiers. The plain command above opens Direct mode. See the [GUI guide](docs/GUI.md) for both modes and tenant selection.*
 
-WindowsDeviceLink can:
+## Choose a mode
 
-- generate/read the TPM-backed DeviceLink identity;
-- export the official Windows-generated `.devicelink.csv`;
-- query, pre-associate and remove Intune Device Association records;
-- inspect and reset local DeviceLink UEFI state;
-- identify the source tenant locally from current DeviceLink registry/JWT metadata without Graph;
-- discover and complete device-side association on supported full Windows builds;
-- provide diagnostics, health classification, preflight checks and safe lifecycle orchestration;
-- send pre-association requests to the optional Azure Function backend.
+Both modes support the CLI and GUI.
 
-> [!IMPORTANT]
-> WindowsDeviceLink is preview / proof-of-concept software. The WinPE implementation and native DeviceLink association use undocumented Windows Runtime interfaces, and Device Association cloud operations use Microsoft Graph beta endpoints. These can change without notice.
+| | Direct | Backend |
+|---|---|---|
+| Connects to | Microsoft Graph | Your Azure Function backend |
+| Authentication | Operator sign-in: Interactive or DeviceCode | Function API credential; Graph app credentials stay in Azure |
+| Tenant scope | One selected tenant | All configured tenants |
+| Best fit | Interactive work in a known tenant | Multitenant lookup, unattended assignment and verified tenant moves |
+| Azure backend required | No | Yes |
 
-## Start here
+For **unattended execution**, use the Backend CLI with an explicit target tenant and a securely supplied API key. Interactive and DeviceCode sign-in require a user. A backend failure does not silently fall back to Direct mode.
 
-- **New to Device Preparation?** Read [Windows Autopilot v1 vs Windows Autopilot device preparation](docs/AUTOPILOT-V1-VS-DEVICE-PREPARATION.md).
-- **Want to know which command to run?** See the [FAQ / common operations](docs/FAQ.md).
-- **Installing on Windows 11 or WinPE?** Read the [installation guide](docs/INSTALLATION.md).
-- **Using WinPE before Windows installation?** Read the [WinPE workflow and support boundaries](docs/WINPE-WORKFLOW.md).
-- **Using the Azure Function backend?** Read [Azure Function backend](docs/AZURE-BACKEND.md).
-- **Choosing Direct or Backend mode?** Read [tenant assignment modes](docs/TENANT-ASSIGNMENT-MODES.md).
+<details>
+<summary>Backend CLI and GUI examples</summary>
 
-## Current version
-
-The current preview release line is `0.12.0-preview1`.
-
-WindowsDeviceLink has two explicit execution routes:
-
-- **Direct mode** talks directly to Microsoft Graph. TenantId is optional for normal
-  interactive or device-code use; when omitted, the sign-in context determines the tenant.
-- **Backend mode** uses the optional Function App for complete multitenant lookup and
-  guarded New, no-op, or Move orchestration.
-
-Direct mode requires operator sign-in using Interactive/WAM or DeviceCode. Backend
-mode supports operators and unattended execution; both UI and CLI can use either route.
-See the [tenant assignment guide](docs/TENANT-ASSIGNMENT-MODES.md) and
-[API deployment security recommendations](docs/AUTHENTICATION-SECURITY.md).
-Graph credentials stay in the backend. API keys must be supplied at runtime, not embedded
-in WinPE images. Network restrictions on the API and credential distribution endpoints
-are recommended; organizations own their hardening and rotation arrangements.
-
-The GUI uses one operator view: Device, Connection, Local association, and Cloud
-association are shown together. The dedicated **Target tenant** action row keeps tenant
-selection or sign-in separate from the lifecycle operation. After the tenant context is
-ready, choose **Pre-associate** or, on supported full Windows, **Associate**. In Backend mode
-that one action performs the complete lookup, decision, identity renewal, pre-association,
-and verification workflow. Diagnostic, export, recovery, and offboarding actions remain
-available below the primary assignment action.
-
-The simplest Direct-mode command does not require a tenant ID:
-
-```powershell
-Set-WindowsDeviceLinkTenant -Method DeviceCode
-```
-
-Or open the GUI; full Windows defaults to Interactive and Windows PE to DeviceCode:
-
-```powershell
-Show-WindowsDeviceLink
-```
-
-Specify a tenant only when it must be selected explicitly:
-
-```powershell
-Set-WindowsDeviceLinkTenant `
-    -Method DeviceCode `
-    -TenantId '<tenant-id>'
-```
-
-Backend mode is activated explicitly by supplying its URI and credential:
+For an interactive test, collect the API key securely:
 
 ```powershell
 $apiKey = Read-Host 'WindowsDeviceLink API key' -AsSecureString
-Show-WindowsDeviceLink `
-    -BackendUri 'https://<app>.azurewebsites.net/api/devicelink' `
-    -BackendApiKey $apiKey
 ```
 
-The equivalent Backend-mode command-line assignment is:
+Assign the current device to a target tenant:
 
 ```powershell
 Set-WindowsDeviceLinkTenant `
@@ -120,292 +101,152 @@ Set-WindowsDeviceLinkTenant `
     -TargetTenantId '<tenant-id>'
 ```
 
-Function App usage is optional. Direct mode accepts one configuration for a fixed named
-tenant or a tenant selector, with optional shared or tenant-specific client IDs:
+Or open the GUI with the backend tenant selector:
 
 ```powershell
-Show-WindowsDeviceLink -Configuration 'E:\Config\devicelink.json'
-Show-WindowsDeviceLink -Configuration 'https://config.example.com/devicelink.json'
-# $config can also contain inline JSON text.
-Show-WindowsDeviceLink -Configuration $config
+Show-WindowsDeviceLink `
+    -BackendUri 'https://<app>.azurewebsites.net/api/devicelink' `
+    -BackendApiKey $apiKey
 ```
 
-The configuration is consumed internally by `Show-WindowsDeviceLink`. See the
-[JSON schema and examples](docs/CONFIGURATION.md). Direct configuration selects the
-operator's target tenant; it does not search or move records across tenants.
+For unattended scripts, obtain `$apiKey` from your controlled credential-delivery mechanism instead of `Read-Host`. Do not embed API keys in WinPE images. The backend supports New, no-op and guarded Move decisions; tenant moves do not unenroll an existing Windows deployment.
 
-## Mental model
+</details>
 
-WindowsDeviceLink keeps the local, cloud and completion layers separate:
-
-```text
-Local DeviceLink identity
-    Get-WindowsDeviceLink
-
-Local DeviceLink firmware state
-    Get-WindowsDeviceLinkFirmwareState
-    Get-WindowsDeviceLinkLocalAssociation
-    Reset-WindowsDeviceLinkFirmwareState
-
-Tenant-side Intune Device Association
-    Get-WindowsDeviceLinkAssociation
-    Register-WindowsDeviceLink
-    Remove-WindowsDeviceLinkAssociation
-
-Native device-side association
-    Test-WindowsDeviceLinkDiscovery
-    Complete-WindowsDeviceLinkAssociation
-
-Diagnostics / orchestration
-    Get-WindowsDeviceLinkStatus
-    Get-WindowsDeviceLinkRepairPlan
-    Test-WindowsDeviceLinkHealth
-    Test-WindowsDeviceLinkPreflight
-    Test-WindowsDeviceLinkAssociationJwt
-    Test-WindowsDeviceLinkRuntime
-    Initialize-WindowsDeviceLink
-```
-
-`Get-WindowsDeviceLink` is always local. It does not authenticate to Microsoft Graph and does not create tenant-side state.
+See [tenant assignment modes](docs/TENANT-ASSIGNMENT-MODES.md), [backend setup](docs/AZURE-BACKEND.md) and [API security](docs/AUTHENTICATION-SECURITY.md).
 
 ## Device Association lifecycle
 
-The normal lifecycle is:
+### Onboarding: pre-associate, then complete association
+
+**Windows 11 and compatible AMD64 WinPE can both create the tenant-side pre-association.** Windows then completes device-side association, normally during OOBE. WindowsDeviceLink can also request completion explicitly on supported full Windows 11.
 
 ```mermaid
-flowchart LR
-    A["LocalOnly<br/>Local DeviceLink identity"]
-    B["Pre-associated<br/>Tenant record created"]
-    C["Associated<br/>Tenant affinity stored in UEFI"]
-    D["Offboarded<br/>Association removed"]
-
-    A -->|"Pre-associate"| B
-    B -->|"Association"| C
-    B -->|"Remove cloud record"| D
-    C -->|"Offboard"| D
+flowchart TD
+    A["Local DeviceLink identity"] -->|"Pre-associate in Windows 11 or WinPE"| B["Pre-associated"]
+    B -->|"During deployment"| C["Windows 11 OOBE"]
+    B -->|"On supported full Windows"| D["Complete on Windows 11"]
+    C --> E["Associated"]
+    D --> E
 ```
+
+**Associated means the device has established its tenant binding, stored in UEFI. It does not mean Intune enrollment, app installation or device configuration is finished.**
+
+- **WinPE:** pre-associate, install Windows 11, and let Windows complete association during OOBE.
+- **Full Windows 11:** use **Associate** in the GUI or `Complete-WindowsDeviceLinkAssociation` after checking `Test-WindowsDeviceLinkPreflight`.
+- A Windows reset or reinstall can retain an existing association; it is not an offboarding operation.
 
 ### Offboarding
 
-The required cleanup depends on the current association state:
+Offboarding is a separate operation when the device leaves the tenant.
 
-- **Pre-associated**: delete the tenant-side Device Association record.
-- **Associated**: end MDM enrollment, clear the local Device Link UEFI state, then delete the tenant-side Device Association record.
+| Starting state | Required cleanup |
+|---|---|
+| Pre-associated; device-side association has not completed | Delete the tenant-side Device Association record. |
+| Associated; tenant affinity is stored in UEFI | End MDM enrollment, clear the local DeviceLink UEFI state, then delete the tenant-side Device Association record. |
 
-For an **Associated** device, deleting only the Device Association record from Intune is not a complete offboarding operation. The trusted tenant affinity remains in UEFI until the local Device Link state is cleared.
+Deleting the cloud record alone does not remove an associated device's local tenant affinity. These actions also do not delete a classic Autopilot v1 registration.
 
-See [OFFBOARDING.md](docs/OFFBOARDING.md) for the complete operator flow.
+<details>
+<summary>View the offboarding flowchart</summary>
 
-## Installation
-
-### Windows 11
-
-Run 64-bit Windows PowerShell 5.1 as administrator:
-
-```powershell
-Install-Module WindowsDeviceLink `
-    -Repository PSGallery `
-    -AllowPrerelease `
-    -Force
-
-Import-Module WindowsDeviceLink -Force
-Test-WindowsDeviceLinkSupport
+```mermaid
+flowchart TD
+    A{"Association state?"}
+    A -->|"Pre-associated"| B["Delete cloud association"]
+    A -->|"Associated"| C["End MDM enrollment"]
+    C --> D["Clear DeviceLink UEFI state"]
+    D --> B
+    B --> E["Association removed"]
 ```
 
-### Windows PE
+The local base identity can still exist or be generated again; the goal is to remove the old tenant association. MDM enrollment, Entra device records and classic Autopilot registration have their own lifecycle.
 
-The current unsigned Gallery preview can require `-SkipPublisherCheck` in the validated AMD64 WinPE / PowerShellGet environment:
+</details>
 
-```powershell
-Install-Module WindowsDeviceLink `
-    -Repository PSGallery `
-    -AllowPrerelease `
-    -SkipPublisherCheck `
-    -Force
-```
-
-WinPE additionally uses the project's **Bring Your Own DLL (BYO-DLL)** compatibility path: the administrator supplies a compatible `Windows.Management.Service.dll`. WindowsDeviceLink intentionally does not download or redistribute this Microsoft binary. Full Windows 11 already contains and registers the runtime, so BYO-DLL is not needed there.
-
-See [INSTALLATION.md](docs/INSTALLATION.md) for the complete setup and troubleshooting path.
-
-## Requirements
-
-- Physical AMD64 device, or an ARM64 device running full Windows 11 through the registered system runtime.
-- TPM 2.0 in a usable state.
-- UEFI firmware.
-- 64-bit Windows PowerShell 5.1.
-- Full Windows 11 on AMD64 or ARM64, or compatible AMD64 Windows PE.
-- WinPE: compatible administrator-supplied `Windows.Management.Service.dll` through the **Bring Your Own DLL (BYO-DLL)** compatibility path.
-- Direct Graph Device Association operations: Microsoft Graph permission `DeviceManagementServiceConfig.ReadWrite.All`.
-- Firmware read/reset and explicit device-side completion: elevated PowerShell with the required firmware/runtime access.
-
-Start on a new system with:
-
-```powershell
-Test-WindowsDeviceLinkSupport
-```
-
-For explicit native completion, also run:
-
-```powershell
-Test-WindowsDeviceLinkPreflight
-```
-
-## Common operations
-
-### Read the local DeviceLink identity
-
-```powershell
-Get-WindowsDeviceLink
-```
-
-Export the official Windows-generated CSV:
-
-```powershell
-Get-WindowsDeviceLink -OutputDirectory 'C:\DeviceLink'
-```
-
-### Create a tenant-side pre-association
-
-```powershell
-Get-WindowsDeviceLink |
-    Register-WindowsDeviceLink -Method Interactive
-```
-
-
-
-### Open the operator GUI
-
-```powershell
-Show-WindowsDeviceLink
-```
-
-The GUI is available on Windows 11 and compatible Windows PE environments. Windows 11 defaults to `Interactive` authentication; Windows PE defaults to `DeviceCode`. Association is available on supported full Windows only.
-
-See the [operator GUI guide](docs/GUI.md) for authentication parameters, tenant selectors/JSON, Windows 11 vs Windows PE behavior, and `Windows.Management.Service.dll` usage.
-
-### Identify the source tenant locally
-
-```powershell
-Get-WindowsDeviceLinkLocalAssociation |
-    Format-List *
-```
-
-The command performs no Graph lookup. It uses only metadata tied to the current local `DeviceLinkId` and fails closed if the registry and Association JWT tenant identifiers disagree.
-
-See [LOCAL-TENANT-DISCOVERY.md](docs/LOCAL-TENANT-DISCOVERY.md).
-### Query combined local/cloud status
-
-```powershell
-Get-WindowsDeviceLinkStatus `
-    -Online `
-    -Method Interactive |
-    Format-List *
-```
-
-### Safely initialize the full lifecycle
-
-Pre-association only:
-
-```powershell
-Initialize-WindowsDeviceLink -Method Interactive
-```
-
-Pre-association plus explicit device-side completion:
-
-```powershell
-Initialize-WindowsDeviceLink `
-    -Method Interactive `
-    -Associate
-```
-
-Expected lifecycle:
-
-```text
-LocalOnly -> Pre-associate -> Preassociated -> Complete -> Associated
-```
-
-For removal, firmware reset, tenant moves, discovery troubleshooting and detailed state transitions, use the [FAQ](docs/FAQ.md) and dedicated documentation instead of treating the README as the operational manual.
+Use the [offboarding guide](docs/OFFBOARDING.md) for the complete procedure. Microsoft documents [association persistence](https://learn.microsoft.com/en-us/autopilot/device-preparation/device-association/lifecycle-management) and [state-dependent removal](https://learn.microsoft.com/en-us/autopilot/device-preparation/device-association/remove-association).
 
 ## Windows PE workflow
 
-Windows PE is primarily a **preparation** environment:
+Use WinPE to prepare a device **before Windows installation**:
 
-```text
-Windows PE
-    |
-    | Bring Your Own DLL (BYO-DLL)
-    | administrator-supplied Windows.Management.Service.dll
-    v
-Generate/read DeviceLink identity
-    |
-    v
-Create tenant-side pre-association
-    |
-    v
-Install Windows 11
-    |
-    v
-Windows 11 OOBE + network
-    |
-    v
-Windows completes Device Association
-```
+1. Supply a compatible `Windows.Management.Service.dll` using the project's **Bring Your Own DLL (BYO-DLL)** path.
+2. Generate/read the DeviceLink identity and pre-associate with the intended tenant.
+3. Install Windows 11 and allow association to complete during OOBE with network access.
 
-With an administrator-supplied compatible runtime, identity generation/readout and tenant-side lifecycle operations are validated in AMD64 WinPE.
+The validated WinPE route is **AMD64**. Native association completion is not supported in WinPE, and ARM64 WinPE is outside the current support scope. Full Windows 11 provides its own registered runtime; BYO-DLL is specific to the WinPE compatibility route.
 
-**BYO-DLL is a compatibility solution, not a bundled runtime.** Windows 11 provides and registers `Windows.Management.Service.dll`; the validated stock AMD64 WinPE image does not. The same compatible Microsoft binary can be activated directly in WinPE. Microsoft has not documented whether or when WinPE will provide native DeviceLink runtime support, so WindowsDeviceLink makes no assumption about the future lifetime of BYO-DLL.
+WindowsDeviceLink does not download or redistribute Microsoft's DLL. For prerequisites, installation and the unsigned Gallery preview's possible `-SkipPublisherCheck` requirement, see [WinPE installation](docs/INSTALLATION.md#amd64-windows-pe) and [workflow details](docs/WINPE-WORKFLOW.md).
 
-Native DeviceLink discovery/completion in WinPE remains experimental. Current research reaches `RequestDiscoveryUrlAsync` and fails with HRESULT `0x81036C00`. Full Windows remains the validated environment for explicit native completion.
+## Moving from Autopilot v1
 
-See [WINPE-WORKFLOW.md](docs/WINPE-WORKFLOW.md).
+A device can keep its classic Autopilot registration and also be pre-associated for device preparation. With Device Association, **device preparation takes precedence during the next OOBE deployment**. Removing the v1 object first is therefore not a prerequisite for that transition.
+
+Assigning a device preparation policy alone does not provide this precedence: without Device Association, an existing classic registration takes priority.
+
+See [the migration FAQ](docs/FAQ.md#do-i-need-to-delete-the-autopilot-v1-object-before-transitioning-to-device-preparation) and [Microsoft's lifecycle guidance](https://learn.microsoft.com/en-us/autopilot/device-preparation/device-association/lifecycle-management#pre-associating-a-device-that-is-registered-for-windows-autopilot).
+
+## Requirements
+
+| Environment | CLI | GUI | Pre-associate | Complete local association |
+|---|---|---|---|---|
+| Supported Windows 11 AMD64 | Yes | Yes | Yes | Yes |
+| Supported Windows 11 ARM64 | Yes | Yes | Yes | Yes |
+| Compatible Windows PE AMD64 | Yes | Yes | **Yes** | No — complete in Windows 11 |
+| Windows PE ARM64 | Not supported | Not supported | Not supported | Not supported |
+
+ARM64 Windows 11 requires native ARM64 PowerShell and the registered system runtime. AMD64 WinPE requires an administrator-supplied compatible runtime.
+
+Use physical hardware with **TPM 2.0**, **UEFI** and **native 64-bit Windows PowerShell 5.1**. Cloud operations require network access and appropriate tenant permissions. Firmware access and explicit completion require elevation.
+
+Run `Test-WindowsDeviceLinkSupport` on the device; run `Test-WindowsDeviceLinkPreflight` before explicit completion. See [installation and troubleshooting](docs/INSTALLATION.md) and [current Microsoft Device Association requirements](https://learn.microsoft.com/en-us/autopilot/device-preparation/device-association/requirements).
+
+## Common operations
+
+| Task | Command |
+|---|---|
+| Read the local identity | `Get-WindowsDeviceLink` |
+| Export the official Windows-generated CSV | `Get-WindowsDeviceLink -OutputDirectory 'C:\DeviceLink'` |
+| Inspect local state | `Get-WindowsDeviceLinkStatus` |
+| Inspect local and cloud state | `Get-WindowsDeviceLinkStatus -Online -Method Interactive` |
+| Pre-associate with the signed-in tenant | `Set-WindowsDeviceLinkTenant -Method Interactive` |
+| Inspect the local tenant binding | `Get-WindowsDeviceLinkLocalAssociation` |
+| Check readiness for explicit completion | `Test-WindowsDeviceLinkPreflight` |
+| Open the operator GUI | `Show-WindowsDeviceLink` |
+
+For state changes, recovery, removal and tenant moves, follow the [FAQ](docs/FAQ.md) and the relevant operation guide.
 
 ## Azure Function backend
 
-WindowsDeviceLink includes an optional Azure Function backend for centralized/multitenant Device Association operations.
+The optional backend centralizes tenant lookup, pre-association and controlled tenant moves. Its configuration maps allowed tenants to certificate or client-secret authentication profiles; Graph credentials stay in Key Vault-backed Function App settings.
 
-Its single non-secret backend JSON maps allowed tenants to certificate or client-secret
-authentication profiles. Multiple tenants can share one multitenant application, while
-separate tenant applications remain possible. Credentials stay in Key Vault-backed
-Function App settings. See [Backend configuration](docs/BACKEND-CONFIGURATION.md).
+The current preview supports **manual Azure configuration and deployment of the supplied Function App package**. The experimental Bicep/ARM route is still tracked in [issue #43](https://github.com/roryvossepoel/WindowsDeviceLink/issues/43).
 
-It provides:
+Start with [backend deployment](docs/AZURE-BACKEND.md), [backend configuration](docs/BACKEND-CONFIGURATION.md) and [multitenant consent](docs/MULTITENANT-CONSENT.md).
 
-- fast multitenant lookup;
-- pre-association;
-- safe New / Update / Move reconciliation;
-- backend-side Graph authentication and verification.
+<details>
+<summary>View the backend tenant-assignment flowchart</summary>
 
-For this preview, the supported deployment route is to configure the Azure resources
-and deploy the supplied Function App package manually. The repository also contains
-experimental Bicep/ARM infrastructure code, but that route is not yet presented as a
-supported Deploy to Azure experience. Its hardening and end-to-end validation are
-tracked in [issue #43](https://github.com/roryvossepoel/WindowsDeviceLink/issues/43).
-
-For cross-tenant use, a multitenant App Registration with certificate authentication is preferred. Client-secret authentication remains a fallback.
-
-`Register-WindowsDeviceLink -Method Webhook` can send pre-association requests to the Function:
-
-```powershell
-Get-WindowsDeviceLink |
-    Register-WindowsDeviceLink `
-        -Method Webhook `
-        -WebhookUri '<function-preassociate-uri>' `
-        -WebhookApiKey $env:WINDOWSDEVICELINK_WEBHOOK_API_KEY `
-        -TenantId '<target-tenant-id>'
+```mermaid
+flowchart TD
+    A["Lookup all configured tenants"] --> B{"Lookup complete and unambiguous?"}
+    B -->|"No"| C["Stop without changes"]
+    B -->|"Yes"| D{"Where is the device?"}
+    D -->|"Target tenant"| E["No-op"]
+    D -->|"Another tenant"| F["Confirmed Move"]
+    D -->|"No tenant"| G["New pre-association"]
+    F --> H["Verify resulting cloud state"]
+    G --> H
 ```
 
-See:
+This shows the default assignment path. A tenant move renews the local identity and handles the proven source record before verifying the target. It does not unenroll Windows or remove existing Entra/Intune managed-device records. See [tenant assignment modes](docs/TENANT-ASSIGNMENT-MODES.md) for prerequisites and repair options.
 
-- [Direct and Backend modes](docs/TENANT-ASSIGNMENT-MODES.md)
-- [Azure Function backend](docs/AZURE-BACKEND.md)
-- [Function deployment](infrastructure/function-app/README.md)
-- [App registration](docs/APP-REGISTRATION.md)
-- [Multitenant admin consent](docs/MULTITENANT-CONSENT.md)
-- [Reconcile schema](docs/RECONCILE-SCHEMA-v1.md)
-- [Security and hardening guidance](docs/SECURITY-HARDENING.md)
+</details>
 
 ## Public commands
+
+<details>
+<summary>View all exported cmdlets</summary>
 
 | Command | Purpose |
 |---|---|
@@ -432,7 +273,23 @@ See:
 | `Test-WindowsDeviceLinkRuntime` | Validate an administrator-supplied runtime DLL without changing state. |
 | `Test-WindowsDeviceLinkSupport` | Validate runtime, architecture and DeviceLink activation. |
 
+</details>
+
 ## Documentation
+
+| Start here | Guide |
+|---|---|
+| Install the module or troubleshoot runtime support | [Installation](docs/INSTALLATION.md) |
+| Find the right command for a task | [FAQ and common operations](docs/FAQ.md) |
+| Use the operator interface | [GUI guide](docs/GUI.md) |
+| Prepare devices before Windows installation | [WinPE workflow](docs/WINPE-WORKFLOW.md) |
+| Choose tenant scope and authentication | [Direct and Backend modes](docs/TENANT-ASSIGNMENT-MODES.md) |
+| Configure a named tenant or tenant selector | [Configuration examples](docs/CONFIGURATION.md) |
+| Remove an association correctly | [Offboarding](docs/OFFBOARDING.md) |
+| Check validation and remaining test work | [Testing status](TESTING.md) |
+
+<details>
+<summary>Browse all technical documentation</summary>
 
 - [AUTOPILOT-V1-VS-DEVICE-PREPARATION.md](docs/AUTOPILOT-V1-VS-DEVICE-PREPARATION.md) — classic Windows Autopilot vs Windows Autopilot device preparation.
 - [FAQ.md](docs/FAQ.md) — practical operations and lifecycle questions.
@@ -456,22 +313,22 @@ See:
 - [PRIVACY.md](PRIVACY.md) — privacy policy and administrator-initiated network transfers.
 - [TESTING.md](TESTING.md) — validation matrix and live-test evidence.
 
+</details>
+
+## Current version
+
+The current preview release line is `0.12.0-preview1`. See [release notes](docs/releases/0.12.0-preview1.md).
+
 ## Scope
 
-Preview release line: `0.12.0-preview1`.
+WindowsDeviceLink manages **Device Association**, including local identity, tenant-side records, diagnostics and guarded lifecycle operations. It does not assign device preparation policies or configure the apps and settings delivered by Intune.
 
-In scope: AMD64 Windows 11/WinPE, ARM64 Windows 11 through the registered system runtime, DeviceLink generation, official CSV export, Device Association query/pre-association/removal, native association discovery/completion on supported full Windows builds, local firmware inspection/reset, diagnostics/health, safe initialization, the optional full-Windows operator GUI, multiple authentication methods, webhook transport and the optional Azure Function reference backend.
-
-Not currently in scope: ARM64 WinPE or direct ARM64 DLL activation, Device Preparation policy assignment, classic Autopilot v1 management, automatic destructive repair, cryptographic association-JWT signature verification, or production support guarantees.
+ARM64 WinPE, direct ARM64 DLL activation, classic Autopilot v1 management, cryptographic association-JWT signature verification and production support guarantees are outside the current scope.
 
 ## Code signing
 
-Preview releases remain unsigned for now. The SignPath Foundation application was reviewed but not approved at this stage because the project does not yet have enough external adoption/visibility signals for the Foundation program.
-
-WindowsDeviceLink does not redistribute or sign Microsoft's `Windows.Management.Service.dll`.
-
-See [CODE-SIGNING.md](docs/CODE-SIGNING.md).
+Preview packages are unsigned. WindowsDeviceLink does not redistribute or sign Microsoft's runtime DLL. See [code signing and provenance](docs/CODE-SIGNING.md).
 
 ## License
 
-Project code is licensed under the MIT License. Microsoft binaries and Microsoft services remain subject to Microsoft's terms.
+Project code is licensed under the MIT License. Microsoft binaries and services remain subject to Microsoft's terms.

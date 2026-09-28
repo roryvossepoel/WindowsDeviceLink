@@ -41,12 +41,12 @@ When an explicit name is supplied, it takes precedence over the generated `nameP
 Example enterprise naming:
 
 ```text
-Resource Group         mgtnl80rg01osd
-Function App           mgtnl80fa01osd
-App Service Plan       mgtnl80asp01osd
-Storage Account        mgtnl80sa01osd
-Key Vault              mgtnl80kv01osd
-Application Insights   mgtnl80ai01osd
+Resource Group         wdl-prod-rg
+Function App           wdl-prod-function
+App Service Plan       wdl-prod-plan
+Storage Account        wdlprodstorage
+Key Vault              wdl-prod-kv
+Application Insights   wdl-prod-insights
 ```
 
 The Resource Group is selected/created outside the template. The other five names are deployment parameters.

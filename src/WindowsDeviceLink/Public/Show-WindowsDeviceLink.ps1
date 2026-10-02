@@ -1569,8 +1569,7 @@ function Show-WindowsDeviceLink {
 
         if ($script:WdlGuiSessionAuthenticated) {
             Clear-GuiSessionAuthentication
-            Set-GuiCapabilities
-            Set-GuiStatus 'Signed out'
+            Set-GuiBusy -Busy $false -StatusText 'Signed out'
             Write-GuiConsole -Message 'Direct-mode session signed out; the in-memory authentication context was cleared.'
             return
         }

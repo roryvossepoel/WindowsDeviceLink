@@ -4,7 +4,7 @@ Windows PowerShell can show the current syntax and parameter help directly:
 
 ```powershell
 Get-Command -Module WindowsDeviceLink
-Get-Help <CommandName> -Full
+Get-Help Show-WindowsDeviceLink -Full
 ```
 
 | Command | Purpose |

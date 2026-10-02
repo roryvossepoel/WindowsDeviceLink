@@ -22,7 +22,7 @@ WindowsDeviceLink is an open-source PowerShell module for **Device Association**
 - **Transition from classic Autopilot.** With Device Association, the existing Autopilot v1 registration can remain while the next OOBE deployment uses device preparation. [How this works](#moving-from-autopilot-v1).
 
 > [!IMPORTANT]
-> **Preview software — `0.12.0-preview1`.** Releases are unsigned. Native DeviceLink operations use undocumented Windows Runtime interfaces and cloud operations use Microsoft Graph beta APIs. Validate your intended workflow before wider deployment. See [support boundaries](#scope) and [testing status](TESTING.md).
+> **Preview software — source version `0.12.1-preview1`.** Releases are unsigned. Native DeviceLink operations use undocumented Windows Runtime interfaces and cloud operations use Microsoft Graph beta APIs. Validate your intended workflow before wider deployment. See [support boundaries](#scope) and [testing status](TESTING.md).
 
 ## Quick start
 
@@ -348,7 +348,7 @@ This shows the default assignment path. A tenant move renews the local identity 
 
 ## Current version
 
-The current preview release line is `0.12.0-preview1`. See [release notes](docs/releases/0.12.0-preview1.md).
+The source tree targets `0.12.1-preview1`. See [release notes](docs/releases/0.12.1-preview1.md). The Gallery badge above shows the latest published package version.
 
 ## Scope
 

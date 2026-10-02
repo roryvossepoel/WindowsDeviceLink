@@ -59,7 +59,7 @@ POST /api/devicelink/offboard
 
 No standalone unauthenticated DELETE endpoint is exposed. Deletion is performed through the authenticated, schema-validated offboarding route or as an internal guarded step of a validated Move.
 
-## Deployment status for 0.12.0-preview1
+## Deployment status
 
 The supported preview route is to configure the required Azure resources and deploy the
 supplied Function App package manually. This keeps the tested backend code available

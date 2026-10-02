@@ -1574,6 +1574,11 @@ function Show-WindowsDeviceLink {
                 $control.Text = 'Not checked'
                 $toolTip.SetToolTip($control,'Not checked')
             }
+            if ($showTenantSelector) {
+                $tenantSelector.SelectedIndex = 0
+                $ui.TenantScope.Text = 'Not selected'
+                $toolTip.SetToolTip($ui.TenantScope,'Not selected')
+            }
             Set-GuiBusy -Busy $false -StatusText 'Signed out'
             Write-GuiConsole -Message 'Direct-mode session signed out; authentication and cached cloud status were cleared.'
             return

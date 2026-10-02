@@ -27,8 +27,11 @@ The two-tenant check then found that sign-out left the selector disabled. The fi
 restores the idle UI state; its regression check covers Interactive and DeviceCode.
 Second-tenant sign-in/lookup passed with the earlier-build workaround, and source commit
 `f5f99633ca25c8fe58db5f04f6d6de865f6c5890` passed the live immediate-unlock check.
-The subsequent requested change clears the cached cloud status and cloud card on sign-out;
-its live display check remains pending. These fixes are not yet in the Gallery preview.
+The subsequent change clears the cached cloud status and cloud card on sign-out;
+its live Interactive display check passed on source commit
+`b1861088304bdbab3d47450f36508065676188af`. The final requested refinement resets a
+multi-tenant selection to the placeholder on sign-out (fixed single tenants remain);
+that short live check is pending. These fixes are not yet in the Gallery preview.
 
 - [x] GUI Interactive: sign in, cancel/retry, cloud refresh, session reuse and sign out/in.
 - [x] GUI DeviceCode: sign in, cloud refresh, session reuse and sign out/in.

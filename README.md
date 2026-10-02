@@ -118,6 +118,22 @@ Show-WindowsDeviceLink `
     -BackendApiKey $apiKey
 ```
 
+### Launch the Backend GUI without an API-key prompt
+
+For a private launcher script, you can supply the API key directly in code:
+
+```powershell
+$apiKey = ConvertTo-SecureString '<your-backend-api-key>' -AsPlainText -Force
+
+Show-WindowsDeviceLink `
+    -BackendUri 'https://<app>.azurewebsites.net/api/devicelink' `
+    -BackendApiKey $apiKey
+```
+
+`Read-Host` is optional. With the backend URI and key supplied, the GUI starts without an API-key or interactive sign-in prompt. Tenant selection and GUI actions remain interactive; use the Backend CLI for fully unattended operations.
+
+Replace the placeholder only in your private script and keep the real key out of public repositories and logs. `ConvertTo-SecureString` does not encrypt the key stored in the script.
+
 For unattended scripts, obtain `$apiKey` from your controlled credential-delivery mechanism instead of `Read-Host`. Do not embed API keys in WinPE images. The backend supports New, no-op and guarded Move decisions; tenant moves do not unenroll an existing Windows deployment.
 
 </details>

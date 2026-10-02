@@ -57,6 +57,19 @@ Windows PE supports local inspection, online lookup, CSV export, pre-association
 
 For the complete GUI parameter reference, tenant JSON examples and Windows 11 / Windows PE comparison, see [GUI.md](GUI.md).
 
+## Does the Backend GUI always prompt for an API key?
+
+No. `Read-Host` in the examples is an optional way to collect the key. Supply
+`-BackendUri` and a `SecureString` key through `-BackendApiKey` to start the GUI
+without an API-key or interactive sign-in prompt. The
+[GUI launcher example](GUI.md#launch-the-backend-gui-without-an-api-key-prompt)
+shows a placeholder key directly in a private script. Replace that placeholder only
+in your private copy; never publish the real key or embed it in a WinPE image.
+
+Tenant selection and GUI actions remain interactive. For fully unattended operations,
+use the [Backend CLI](TENANT-ASSIGNMENT-MODES.md#gui-and-cli-are-different-operator-surfaces)
+with a supplied key and an explicit target tenant.
+
 ## Start here: what state is the device in?
 
 For local state only:

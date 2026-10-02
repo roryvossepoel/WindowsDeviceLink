@@ -113,6 +113,12 @@ Set-WindowsDeviceLinkTenant `
     -TargetTenantName 'Tenant Alpha'
 ```
 
+`Read-Host` is optional and only makes this example interactive. For unattended
+scripts, supply `$apiKey` as a `SecureString` through your controlled
+credential-delivery mechanism. For a private script with the key directly in code,
+see the [GUI launcher example](GUI.md#launch-the-backend-gui-without-an-api-key-prompt);
+the same key preparation works for the CLI commands above.
+
 `Set-WindowsDeviceLinkTenant` resolves the friendly name against the authenticated
 catalog, but uses the tenant GUID as its authoritative automation identifier. It
 performs a complete lookup first and chooses New, no-op, or Move. A Move renews the

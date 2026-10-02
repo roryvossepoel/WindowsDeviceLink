@@ -93,8 +93,8 @@ cause was not established; no WindowsDeviceLink code fix is inferred from that r
 ### Scope and remaining evidence
 
 This run does not certify every architecture, tenant configuration or failure mode.
-Live Direct Configuration file/HTTPS/inline loading, fixed tenant labels, switching
-configured tenants and effective client-app selection remain pending. Earlier Backend,
+Live Direct Configuration file/HTTPS loading and effective client-app selection remain
+pending; subsequent inline/fixed-tenant and switching evidence is recorded below. Earlier Backend,
 ARM64, WinPE and OOBE evidence below remains applicable to its recorded builds; those
 complete lifecycles are not being repeated solely to remove the preview label.
 
@@ -116,8 +116,16 @@ signed in and queried the first tenant with the selector locked. The next step f
 a second defect: sign-out cleared authentication but left the selector disabled.
 The sign-out handler now restores the complete idle UI state. A regression check
 executes the production sign-out, authentication-clear and idle-state functions for
-Interactive and DeviceCode, with visible and hidden selectors. Live sign-out,
-tenant switching and the second-tenant lookup remain pending on this correction.
+Interactive and DeviceCode, with visible and hidden selectors. The second-tenant
+Interactive sign-in and lookup passed after a Refresh local workaround on the earlier
+source build. Source commit `f5f99633ca25c8fe58db5f04f6d6de865f6c5890` then passed the
+live sign-in/lookup/sign-out check: the dropdown was enabled immediately after sign-out.
+
+The operator requested a clearer signed-out cloud display after observing the retained
+last result. Sign-out now discards the cached cloud association and resets all four cloud
+card values and tooltips to Not checked, while preserving the selected target and local
+state. Regression coverage checks this for Interactive and DeviceCode; live validation
+of this final display change remains pending. Historical activity-log entries remain.
 
 Do not treat the [historical 0.10 test plan](docs/TEST-MATRIX-0.10.0.md) as the current
 authentication matrix. Current Direct authentication is Interactive or DeviceCode;

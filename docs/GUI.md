@@ -61,8 +61,11 @@ closes. Backend mode continues to load cloud state automatically because it does
 require an interactive Graph sign-in on the device.
 
 After a successful Direct-mode sign-in, **Sign in** changes to **Sign out**. Signing
-out clears the in-memory authentication context and unlocks a configured tenant
-selector. While signed in, that selector remains locked so a token cannot be reused
+out clears the in-memory authentication context and cached cloud association, resets
+the cloud card to **Not checked**, and unlocks a configured tenant selector. The chosen
+target tenant and local device state remain available. This applies to both Interactive
+and DeviceCode; the activity log retains its historical entries.
+While signed in, that selector remains locked so a token cannot be reused
 silently for another target tenant.
 The Connection card shows the signed-in account for delegated Direct mode. Interactive
 authentication reads it from the Microsoft Graph session; Device Code authentication

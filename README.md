@@ -22,14 +22,14 @@ WindowsDeviceLink is an open-source PowerShell module for **Device Association**
 - **Transition from classic Autopilot.** With Device Association, the existing Autopilot v1 registration can remain while the next OOBE deployment uses device preparation. [How this works](#moving-from-autopilot-v1).
 
 > [!IMPORTANT]
-> **Preview software — source version `0.12.1-preview1`.** Releases are unsigned. Native DeviceLink operations use undocumented Windows Runtime interfaces and cloud operations use Microsoft Graph beta APIs. Validate your intended workflow before wider deployment. See [support boundaries](#scope) and [testing status](TESTING.md).
+> **Stable release line — source version `1.0.0`.** Releases are unsigned. Native DeviceLink operations use undocumented Windows Runtime interfaces and cloud operations use Microsoft Graph beta APIs. Validate your intended workflow before wider deployment. See [support boundaries](#scope) and [testing status](TESTING.md).
 
 ## Quick start
 
 On a supported **physical Windows 11 device**, open **native 64-bit Windows PowerShell 5.1 as administrator**. On ARM64, use native ARM64 PowerShell. See [requirements](#requirements) or the separate [WinPE setup](#windows-pe-workflow).
 
 ```powershell
-Install-Module WindowsDeviceLink -Repository PSGallery -AllowPrerelease -Force
+Install-Module WindowsDeviceLink -Repository PSGallery -Force
 Import-Module WindowsDeviceLink
 Test-WindowsDeviceLinkSupport
 ```
@@ -206,7 +206,7 @@ Use WinPE to prepare a device **before Windows installation**:
 
 The validated WinPE route is **AMD64**. Native association completion is not supported in WinPE, and ARM64 WinPE is outside the current support scope. Full Windows 11 provides its own registered runtime; BYO-DLL is specific to the WinPE compatibility route.
 
-WindowsDeviceLink does not download or redistribute Microsoft's DLL. For prerequisites, installation and the unsigned Gallery preview's possible `-SkipPublisherCheck` requirement, see [WinPE installation](docs/INSTALLATION.md#amd64-windows-pe) and [workflow details](docs/WINPE-WORKFLOW.md).
+WindowsDeviceLink does not download or redistribute Microsoft's DLL. For prerequisites, installation and the unsigned Gallery package's possible `-SkipPublisherCheck` requirement, see [WinPE installation](docs/INSTALLATION.md#amd64-windows-pe) and [workflow details](docs/WINPE-WORKFLOW.md).
 
 ## Moving from Autopilot v1
 
@@ -250,7 +250,7 @@ For state changes, recovery, removal and tenant moves, follow the [FAQ](docs/FAQ
 
 The optional backend centralizes tenant lookup, pre-association and controlled tenant moves. Its configuration maps allowed tenants to certificate or client-secret authentication profiles; Graph credentials stay in Key Vault-backed Function App settings.
 
-The current preview supports **manual Azure configuration and deployment of the supplied Function App package**. The experimental Bicep/ARM route is still tracked in [issue #43](https://github.com/roryvossepoel/WindowsDeviceLink/issues/43).
+The supported backend route uses **manual Azure configuration and deployment of the supplied Function App package**. The experimental Bicep/ARM route is still tracked in [issue #43](https://github.com/roryvossepoel/WindowsDeviceLink/issues/43).
 
 Start with [backend deployment](docs/AZURE-BACKEND.md), [backend configuration](docs/BACKEND-CONFIGURATION.md) and [multitenant consent](docs/MULTITENANT-CONSENT.md).
 
@@ -348,7 +348,7 @@ This shows the default assignment path. A tenant move renews the local identity 
 
 ## Current version
 
-The source tree targets `0.12.1-preview1`. See [release notes](docs/releases/0.12.1-preview1.md). The Gallery badge above shows the latest published package version.
+The source tree targets stable `1.0.0`. See [release notes](docs/releases/1.0.0.md). The Gallery badge above shows the latest published package version.
 
 ## Scope
 
@@ -358,7 +358,7 @@ ARM64 WinPE, direct ARM64 DLL activation, classic Autopilot v1 management, crypt
 
 ## Code signing
 
-Preview packages are unsigned. WindowsDeviceLink does not redistribute or sign Microsoft's runtime DLL. See [code signing and provenance](docs/CODE-SIGNING.md).
+Packages are currently unsigned. WindowsDeviceLink does not redistribute or sign Microsoft's runtime DLL. See [code signing and provenance](docs/CODE-SIGNING.md).
 
 ## License
 

@@ -4,7 +4,7 @@ WindowsDeviceLink is currently unsigned.
 
 The project applied to the SignPath Foundation program in September 2026. SignPath reviewed the application but did not approve it at this stage because the project does not yet show enough external trust/visibility signals such as community adoption, independent references, institutional backing, or sustained external engagement.
 
-The project may reapply when those signals have grown or adopt another suitable signing path. Until a signing solution is active, preview packages remain unsigned.
+The project may reapply when those signals have grown or adopt another suitable signing path. Until a signing solution is active, packages remain unsigned.
 
 ## Signing scope
 

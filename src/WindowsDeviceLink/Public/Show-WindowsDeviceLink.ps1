@@ -1569,8 +1569,13 @@ function Show-WindowsDeviceLink {
 
         if ($script:WdlGuiSessionAuthenticated) {
             Clear-GuiSessionAuthentication
+            $script:WdlGuiCloudStatus = $null
+            foreach ($control in @($ui.CloudState,$ui.CloudTenant,$ui.CloudId,$ui.CloudChecked)) {
+                $control.Text = 'Not checked'
+                $toolTip.SetToolTip($control,'Not checked')
+            }
             Set-GuiBusy -Busy $false -StatusText 'Signed out'
-            Write-GuiConsole -Message 'Direct-mode session signed out; the in-memory authentication context was cleared.'
+            Write-GuiConsole -Message 'Direct-mode session signed out; authentication and cached cloud status were cleared.'
             return
         }
 

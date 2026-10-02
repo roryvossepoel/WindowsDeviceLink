@@ -177,7 +177,7 @@ Add-Type -AssemblyName System.Windows.Forms
         . ([scriptblock]::Create($ast.Extent.Text))
     }
     function New-TestControl {
-        $control=[pscustomobject]@{Enabled=$true;Text='';Visible=$false;UseWaitCursor=$false}
+        $control=[pscustomobject]@{Enabled=$true;Text='';Visible=$false;UseWaitCursor=$false;ToolTipText=''}
         $control | Add-Member ScriptMethod Invalidate {param($Children)}
         $control | Add-Member ScriptMethod Update {}
         return $control
@@ -189,8 +189,9 @@ Add-Type -AssemblyName System.Windows.Forms
     function Set-GuiCapabilities { $script:SignOutCapabilitiesRefreshed=$true }
     function Set-GuiStatus { param($Text) $script:SignOutStatus=$Text }
     function Write-GuiConsole { param($Message) }
-    $toolTip=New-Object psobject; $toolTip | Add-Member ScriptMethod SetToolTip {param($Control,$Text)}
+    $toolTip=New-Object psobject; $toolTip | Add-Member ScriptMethod SetToolTip {param($Control,$Text) $Control.ToolTipText=$Text}
     $ui=@{Authentication=(New-TestControl);Endpoint=(New-TestControl);TenantScope=(New-TestControl)}
+    foreach ($name in @('CloudState','CloudTenant','CloudId','CloudChecked')) { $ui[$name]=New-TestControl }
     $tenantSelector=New-TestControl; $actionsPanel=New-TestControl; $form=New-TestControl
     $btnSignIn=New-TestControl; $btnCopyActivity=New-TestControl; $btnClearActivity=New-TestControl
     $statusProgress=New-TestControl; $allActionButtons=@($btnSignIn)
@@ -202,6 +203,11 @@ Add-Type -AssemblyName System.Windows.Forms
             $script:WdlGuiSessionAccountName='operator@example.invalid'
             $script:WdlGuiSessionAccessToken='synthetic'
             $script:WdlGuiSessionExpiresUtc=[datetime]::UtcNow.AddHours(1)
+            $script:WdlGuiCloudStatus=[pscustomobject]@{AssociationPresent=$true;AssociationState='associated';TenantId=(Get-SelectedTenantId);AssociationId='synthetic-association'}
+            foreach ($name in @('CloudState','CloudTenant','CloudId','CloudChecked')) {
+                $ui[$name].Text='Previous cloud result'
+                $ui[$name].ToolTipText='Previous cloud detail'
+            }
             Set-GuiBusy -Busy $false
             Assert-True (-not $tenantSelector.Enabled) 'Signed-in tenant selector must stay locked'
             $script:SignOutDisconnected=$false; $script:SignOutCapabilitiesRefreshed=$false
@@ -211,7 +217,11 @@ Add-Type -AssemblyName System.Windows.Forms
             Assert-True ($script:SignOutCapabilitiesRefreshed -and $script:SignOutStatus -eq 'Signed out') 'Sign-out must refresh capabilities and status'
             Assert-True ($script:SignOutDisconnected -eq ($Method -eq 'Interactive')) 'Sign-out must disconnect Graph only for Interactive'
             Assert-True ($ui.Endpoint.Text -eq 'Not signed in' -and $ui.TenantScope.Text -eq 'Tenant Alpha' -and $btnSignIn.Text -eq 'Sign in') 'Sign-out must clear account display and preserve selected tenant'
+            Assert-True ($null -eq $script:WdlGuiCloudStatus) 'Sign-out must discard cached cloud association state'
+            foreach ($name in @('CloudState','CloudTenant','CloudId','CloudChecked')) {
+                Assert-True ($ui[$name].Text -eq 'Not checked' -and $ui[$name].ToolTipText -eq 'Not checked') "Sign-out must clear $name and its tooltip"
+            }
         }
     }
 }
-Write-Host 'PASS: Interactive/DeviceCode sign-out clears authentication and immediately restores tenant selection'
+Write-Host 'PASS: Interactive/DeviceCode sign-out clears authentication/cloud state and immediately restores tenant selection'

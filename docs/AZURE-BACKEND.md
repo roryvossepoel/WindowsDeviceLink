@@ -61,7 +61,7 @@ No standalone unauthenticated DELETE endpoint is exposed. Deletion is performed 
 
 ## Deployment status
 
-The supported preview route is to configure the required Azure resources and deploy the
+The supported deployment route is to configure the required Azure resources and deploy the
 supplied Function App package manually. This keeps the tested backend code available
 without treating an unvalidated landing-zone template as a production installer.
 

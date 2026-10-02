@@ -1,7 +1,7 @@
 # Current validation and polish checklist
 
 Reviewed: 2026-10-02 after the live Windows 11 AMD64 test session.
-Current published and tested Gallery package: `0.12.1-preview1`.
+Stable source candidate: `1.0.0`. Latest live-tested Gallery artifact before stable publication: `0.12.1-preview1`.
 
 This checklist separates current passes, earlier evidence, remaining live checks and
 optional polish. [TESTING.md](../TESTING.md#published-0121-preview1-windows-11-amd64-validation)
@@ -153,7 +153,7 @@ describes the intended transition; it is not itself a physical test report.
 - [x] Actual Gallery package 0.12.1-preview1 installed/imported on Windows 11 AMD64;
   GUI startup, local status and cloud operations passed.
 - [x] Today's live results and their limitations recorded in TESTING.md.
-- [ ] Prepare the stable manifest/version, release notes and current installation guidance.
+- [x] Prepare the 1.0.0 stable manifest/version, release notes and current installation guidance.
 - [ ] Run CI, including documentation/package checks, against the exact final stable commit.
 - [ ] Review the final public changes/package for environment identifiers, credentials,
   raw identity/JWT content and excluded Microsoft runtime binaries.

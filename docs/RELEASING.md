@@ -90,9 +90,10 @@ The optional `expected_version` input is a safety check. For example:
 0.12.1-preview1
 ```
 
-The workflow derives `v<version>` from the manifest, verifies that the source is the current GitHub-Verified `main` commit, and creates the prerelease/tag without moving an existing tag.
+The workflow derives `v<version>` from the manifest, verifies that the source is the current GitHub-Verified `main` commit, and creates the release/tag (marked prerelease only when the manifest has a prerelease label) without moving an existing tag.
 
-The immutable tag is required before Gallery publication.
+When `docs/releases/<version>.md` exists, its curated notes are included before the
+automatically generated change list. The immutable tag is required before Gallery publication.
 
 ## Publish to PowerShell Gallery
 

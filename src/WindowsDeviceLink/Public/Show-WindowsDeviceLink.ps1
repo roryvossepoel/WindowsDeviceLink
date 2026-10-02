@@ -129,7 +129,7 @@ function Show-WindowsDeviceLink {
     $targetHeight = [Math]::Max(620,[Math]::Min(760,$workingArea.Height - 40))
 
     $form = New-Object System.Windows.Forms.Form
-    $form.Text = "WindowsDeviceLink $displayVersion (Preview)"
+    $form.Text = if ([string]::IsNullOrWhiteSpace($prerelease)) { "WindowsDeviceLink $displayVersion" } else { "WindowsDeviceLink $displayVersion (Preview)" }
     $form.StartPosition = 'CenterScreen'
     $form.Size = [System.Drawing.Size]::new($targetWidth,$targetHeight)
     $form.MinimumSize = [System.Drawing.Size]::new(820,620)

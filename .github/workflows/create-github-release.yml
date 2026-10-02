@@ -157,6 +157,11 @@ jobs:
               '--generate-notes'
           )
 
+          $notesPath = Join-Path $PWD "docs/releases/$($env:RELEASE_VERSION).md"
+          if (Test-Path -LiteralPath $notesPath) {
+              $arguments += @('--notes-file', $notesPath)
+          }
+
           if ($env:TAG_EXISTS -eq 'true') {
               # Recovery path: a previous release attempt may have created the tag before
               # GitHub returned an error. Never move or recreate that tag.

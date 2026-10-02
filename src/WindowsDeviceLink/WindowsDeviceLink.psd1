@@ -1,6 +1,6 @@
 @{
     RootModule        = 'WindowsDeviceLink.psm1'
-    ModuleVersion     = '0.12.1'
+    ModuleVersion     = '1.0.0'
     GUID              = '776a2252-d4f4-495d-9445-ac3195ebbf46'
     Author            = 'Rory Vossepoel'
     CompanyName       = 'Community'
@@ -40,7 +40,8 @@
             Tags       = @('Windows', 'WinPE', 'Intune', 'Autopilot', 'DevicePreparation', 'DeviceLink', 'DeviceAssociation', 'Firmware', 'UEFI', 'Webhook', 'TPM', 'JWT')
             LicenseUri = 'https://github.com/roryvossepoel/WindowsDeviceLink/blob/main/LICENSE'
             ProjectUri = 'https://github.com/roryvossepoel/WindowsDeviceLink'
-            Prerelease = 'preview1'
+            Prerelease = ''
+            ReleaseNotes = 'First stable release. Includes validated Direct and Backend lifecycle workflows, corrected configured-tenant display, complete Direct sign-out cleanup, and stable-aware GUI version labeling. See https://github.com/roryvossepoel/WindowsDeviceLink/blob/v1.0.0/docs/releases/1.0.0.md'
         }
     }
 }

@@ -1,7 +1,10 @@
 # WindowsDeviceLink
 
 [![PowerShell Gallery Version](https://img.shields.io/powershellgallery/v/WindowsDeviceLink?include_prereleases&label=PowerShell%20Gallery)](https://www.powershellgallery.com/packages/WindowsDeviceLink)
-[![PowerShell Gallery Downloads](https://img.shields.io/powershellgallery/dt/WindowsDeviceLink)](https://www.powershellgallery.com/packages/WindowsDeviceLink)
+[![PowerShell Gallery Downloads (latest version, including previews)](https://img.shields.io/badge/dynamic/xml?url=https%3A%2F%2Fwww.powershellgallery.com%2Fapi%2Fv2%2FPackages%3F%2524filter%3DId%2Beq%2B%2527WindowsDeviceLink%2527%2Band%2BIsAbsoluteLatestVersion%2Beq%2Btrue%26%2524select%3DVersion%252CVersionDownloadCount%252CIsPrerelease&query=%2F%2F*%5Blocal-name()%3D'VersionDownloadCount'%5D&label=downloads%20(latest)&color=blue&cacheSeconds=3600)](https://www.powershellgallery.com/packages/WindowsDeviceLink)
+[![Module CI](https://github.com/roryvossepoel/WindowsDeviceLink/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/roryvossepoel/WindowsDeviceLink/actions/workflows/ci.yml)
+[![Windows PowerShell 5.1](https://img.shields.io/badge/Windows%20PowerShell-5.1-blue)](#requirements)
+[![Windows 11 and AMD64 WinPE](https://img.shields.io/badge/Platform-Windows%2011%20%7C%20AMD64%20WinPE-blue)](#requirements)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 **Prepare Windows devices for Windows Autopilot device preparation — from PowerShell or an optional GUI.**

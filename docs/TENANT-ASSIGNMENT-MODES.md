@@ -122,6 +122,11 @@ Show-WindowsDeviceLink `
     -BackendApiKey $apiKey
 ```
 
+`Read-Host` is optional; it only collects the key interactively in this example.
+For a private script with the key supplied directly in code, see
+[launching the Backend GUI without an API-key prompt](GUI.md#launch-the-backend-gui-without-an-api-key-prompt).
+The GUI still requires an operator to select the target and run actions.
+
 The Function App provides the authoritative tenant catalog and keeps Microsoft Graph
 credentials in Azure. The device receives neither the Graph certificate nor a client
 secret. The backend checks every configured tenant before deciding what to do.

@@ -15,7 +15,8 @@ Show-WindowsDeviceLink
 Supply `-TenantId` only when Direct mode must target one tenant explicitly, or use a
 tenant catalog when an operator needs friendly choices.
 
-Backend mode is enabled explicitly for complete multitenant lookup and Move:
+Backend mode is enabled explicitly for complete multitenant lookup and Move. This
+interactive example prompts for the API key:
 
 ```powershell
 $apiKey = Read-Host 'WindowsDeviceLink API key' -AsSecureString
@@ -24,6 +25,8 @@ Show-WindowsDeviceLink `
     -BackendUri 'https://<app>.azurewebsites.net/api/devicelink' `
     -BackendApiKey $apiKey
 ```
+
+For startup without this prompt, see the [private launcher example](#launch-the-backend-gui-without-an-api-key-prompt).
 
 The GUI retrieves the allowed tenant catalog from the Function App and automatically
 checks the current cloud association when it opens. Device, Local association, and
@@ -72,9 +75,31 @@ authentication is then scoped to that selected tenant.
 uses the API credential supplied at startup and does not sign the operator into Graph.
 Certificate and client-secret authentication are configured in the backend, not in the GUI.
 
+### Launch the Backend GUI without an API-key prompt
+
+For a private launcher script, supply the API key directly in code:
+
+```powershell
+$apiKey = ConvertTo-SecureString '<your-backend-api-key>' -AsPlainText -Force
+
+Show-WindowsDeviceLink `
+    -BackendUri 'https://<app>.azurewebsites.net/api/devicelink' `
+    -BackendApiKey $apiKey
+```
+
+`Read-Host` is optional. With the backend URI and key supplied, the GUI starts without
+an API-key or interactive sign-in prompt. Tenant selection and GUI actions remain
+interactive; use the [Backend CLI](TENANT-ASSIGNMENT-MODES.md#gui-and-cli-are-different-operator-surfaces)
+for fully unattended operations.
+
+Replace the placeholder only in your private script and keep the real key out of
+public repositories and logs. `ConvertTo-SecureString` does not encrypt the key stored
+in the script. Do not embed API keys in WinPE images; supply them at runtime through
+your controlled credential-delivery mechanism.
+
 ## Authentication
 
-Select an authentication method with `-Method`.
+In Direct mode, select an authentication method with `-Method`.
 
 | Method | Typical parameters |
 |---|---|
@@ -93,12 +118,9 @@ Show-WindowsDeviceLink `
     -TenantId '<tenant-id>'
 ```
 
-```powershell
-$apiKey = Read-Host 'Backend API key' -AsSecureString
-Show-WindowsDeviceLink -BackendUri 'https://backend.example.com/api/devicelink' -BackendApiKey $apiKey
-```
-
-For unattended operation use Backend mode. See the [hardening recommendations](AUTHENTICATION-SECURITY.md).
+Backend mode uses `-BackendUri` and `-BackendApiKey` instead of `-Method`.
+Supply the key as a `SecureString`; see [startup without an API-key prompt](#launch-the-backend-gui-without-an-api-key-prompt).
+See the [hardening recommendations](AUTHENTICATION-SECURITY.md) for credential handling.
 
 <details>
 <summary>View the Backend GUI</summary>

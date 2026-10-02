@@ -134,6 +134,8 @@ Show-WindowsDeviceLink `
 
 Replace the placeholder only in your private script and keep the real key out of public repositories and logs. `ConvertTo-SecureString` does not encrypt the key stored in the script.
 
+See the [GUI guide](docs/GUI.md#launch-the-backend-gui-without-an-api-key-prompt) for the same launcher example and GUI authentication details.
+
 For unattended scripts, obtain `$apiKey` from your controlled credential-delivery mechanism instead of `Read-Host`. Do not embed API keys in WinPE images. The backend supports New, no-op and guarded Move decisions; tenant moves do not unenroll an existing Windows deployment.
 
 </details>

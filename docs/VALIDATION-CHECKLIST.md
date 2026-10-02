@@ -1,7 +1,7 @@
 # Current validation and polish checklist
 
-Reviewed: 2026-10-02 after the live Windows 11 AMD64 test session.
-Stable source candidate: `1.0.0`. Latest live-tested Gallery artifact before stable publication: `0.12.1-preview1`.
+Reviewed: 2026-10-02 after stable publication and the live Windows 11 AMD64 Gallery smoke test.
+Current published and live-tested stable Gallery package: `1.0.0`.
 
 This checklist separates current passes, earlier evidence, remaining live checks and
 optional polish. [TESTING.md](../TESTING.md#published-0121-preview1-windows-11-amd64-validation)
@@ -146,7 +146,7 @@ describes the intended transition; it is not itself a physical test report.
 
 ## 6. Package and release verification
 
-**Status: Published preview validated; final stable artifact checks remain.**
+**Status: Stable 1.0.0 published and its actual Gallery package smoke-tested.**
 
 - [x] Module CI passed for preview source `8237dda9fc9ed517a1dcccd43ca64fdf4159d256`.
 - [x] GitHub release and Gallery workflows passed for the same immutable preview source.
@@ -154,11 +154,13 @@ describes the intended transition; it is not itself a physical test report.
   GUI startup, local status and cloud operations passed.
 - [x] Today's live results and their limitations recorded in TESTING.md.
 - [x] Prepare the 1.0.0 stable manifest/version, release notes and current installation guidance.
-- [ ] Run CI, including documentation/package checks, against the exact final stable commit.
-- [ ] Review the final public changes/package for environment identifiers, credentials,
+- [x] Run CI, including documentation/package checks, against exact final stable commit
+  `d9aa44fb3cb2418474832b355df8c95720c80e6e`.
+- [x] Review the final public changes/package for environment identifiers, credentials,
   raw identity/JWT content and excluded Microsoft runtime binaries.
-- [ ] Publish the immutable stable GitHub release/tag and matching Gallery artifact.
-- [ ] Perform one short actual stable Gallery install/import/version and GUI-startup check.
+- [x] Publish immutable stable GitHub release/tag `v1.0.0` and matching Gallery artifact.
+- [x] Perform an actual stable Gallery 1.0.0 install/import/version and GUI-startup check;
+  the title showed WindowsDeviceLink 1.0.0 without Preview.
 
 Do not republish unchanged module code solely for documentation updates. Earlier ARM64
 and WinPE evidence remains in TESTING.md; no complete lifecycle rerun is required for a

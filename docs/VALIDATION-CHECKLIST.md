@@ -19,6 +19,11 @@ not marked Pass merely because the release scope has been narrowed.
 
 **Status: Core GUI/CLI checks passed on Windows 11 AMD64; live Configuration checks remain.**
 
+The first single-tenant inline check found a real 0.12.1-preview1 defect: the fixed
+tenant was displayed as "Determined by sign-in". The array-normalization correction
+and loading-path regression test require CI and a corrected-build live check. This
+observed tenant-selection defect must be resolved before stable; it is not deferred polish.
+
 - [x] GUI Interactive: sign in, cancel/retry, cloud refresh, session reuse and sign out/in.
 - [x] GUI DeviceCode: sign in, cloud refresh, session reuse and sign out/in.
 - [x] Default GUI sign-in tenant and explicit-tenant Interactive CLI lookup.

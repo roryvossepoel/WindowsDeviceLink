@@ -92,9 +92,13 @@ function Show-WindowsDeviceLink {
         throw '-Configuration cannot be combined with Backend mode, -TenantId or -ClientId. Put Direct tenant/client choices in the configuration.'
     }
     # Validate before creating a window or making any authentication request.
-    $configuredTenants = if ($outerBoundParameters.ContainsKey('Configuration')) {
-        @(Read-WindowsDeviceLinkConfiguration -Configuration $Configuration)
-    } else { @() }
+    # Capture the complete conditional output as an array. An array inside the if
+    # branch is enumerated again, leaving one tenant as a scalar on PowerShell 5.1.
+    $configuredTenants = @(
+        if ($outerBoundParameters.ContainsKey('Configuration')) {
+            Read-WindowsDeviceLinkConfiguration -Configuration $Configuration
+        }
+    )
 
     if ($backendMode -and $outerBoundParameters.ContainsKey('Method')) {
         throw 'Backend mode performs Graph operations through the Function App; do not combine it with -Method.'

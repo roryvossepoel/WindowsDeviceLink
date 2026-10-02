@@ -98,6 +98,15 @@ configured tenants and effective client-app selection remain pending. Earlier Ba
 ARM64, WinPE and OOBE evidence below remains applicable to its recorded builds; those
 complete lifecycles are not being repeated solely to remove the preview label.
 
+The first live inline single-tenant Configuration check subsequently failed on the
+published 0.12.1-preview1 package: the signed-out GUI showed "Determined by sign-in"
+instead of the configured fixed tenant name. The GUI's conditional assignment allowed
+a one-entry catalog to become a scalar, so its PowerShell 5.1 Count check did not select
+the fixed tenant. The correction captures the entire conditional output as an array;
+the regression test now executes that production loading statement instead of injecting
+an already normalized array. A corrected-build live check is still required before
+marking this scenario passed. The published preview does not contain this correction.
+
 Do not treat the [historical 0.10 test plan](docs/TEST-MATRIX-0.10.0.md) as the current
 authentication matrix. Current Direct authentication is Interactive or DeviceCode;
 certificate/client-secret authentication belongs to the backend's Graph connection.

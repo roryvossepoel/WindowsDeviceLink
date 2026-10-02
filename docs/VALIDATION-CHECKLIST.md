@@ -9,15 +9,15 @@ records the tested artifact, source commit, environment and observed results. Ea
 passes remain tied to their recorded versions; they are not relabeled as new tests.
 The 0.10 matrix and 0.4.x lifecycle plan are historical documents.
 
-The agreed route toward stable is: record completed tests, finish live Direct
-Configuration checks, correct release-facing documentation, then validate and publish
+The agreed route toward stable is: record completed tests, retain the completed Direct
+Configuration checks and earlier authentication evidence, correct release-facing documentation, then validate and publish
 the final package. Do not repeat full Backend, ARM64 or WinPE lifecycles unless a
 relevant change or a concrete regression warrants it. Unknown or untested behavior is
 not marked Pass merely because the release scope has been narrowed.
 
 ## 1. Direct on Windows 11
 
-**Status: Core GUI/CLI checks passed on Windows 11 AMD64; live Configuration checks remain.**
+**Status: Core GUI/CLI, configuration loading, tenant switching and sign-out checks passed; earlier app-authentication evidence retained.**
 
 The first single-tenant inline check found a real 0.12.1-preview1 defect: the fixed
 tenant was displayed as "Determined by sign-in". The array-normalization correction
@@ -31,7 +31,11 @@ The subsequent change clears the cached cloud status and cloud card on sign-out;
 its live Interactive display check passed on source commit
 `b1861088304bdbab3d47450f36508065676188af`. The final requested refinement resets a
 multi-tenant selection to the placeholder on sign-out (fixed single tenants remain);
-that short live check is pending. These fixes are not yet in the Gallery preview.
+its live Interactive and DeviceCode sign-out checks passed on source commit
+`de82a23e87b1256c7a3ccead6cc36e1c7779bc78`. These fixes are not yet in the Gallery preview.
+The same source passed inline/local-file/HTTPS loading and an Interactive tenant switch
+after a Windows restart. Earlier intermittent authentication failures and a passkey-page
+error are recorded in TESTING.md; their root cause remains unproven.
 
 - [x] GUI Interactive: sign in, cancel/retry, cloud refresh, session reuse and sign out/in.
 - [x] GUI DeviceCode: sign in, cloud refresh, session reuse and sign out/in.
@@ -41,18 +45,25 @@ that short live check is pending. These fixes are not yet in the Gallery preview
   local reset, repeated-reset no-op and new base identity generation.
 - [x] GUI CSV export while signed out (operator-reported pass).
 
-The following are the focused remaining live checks, using read-only cloud refresh
+The following tracks focused configuration checks, using read-only cloud refresh
 where possible. There is no need to repeat registration or tenant Move to validate
 selection and authentication routing.
 
-- [ ] Load Direct configuration from a local JSON file, inline JSON and trusted HTTPS.
+- [x] Load Direct configuration from a local JSON file, inline JSON and trusted HTTPS.
   A load/display check is sufficient for each source; do not repeat a lifecycle per source.
 - [x] One configured tenant: correct fixed name before sign-in, after sign-in and after
   sign-out; authentication and cloud lookup target that tenant.
-- [ ] Multiple configured tenants: select, sign in and refresh; sign out, switch tenant,
+- [x] Multiple configured tenants: select, sign in and refresh; sign out, switch tenant,
   sign in and refresh; verify the new session/lookup tenant and cleared prior cloud context.
-- [ ] Verify effective client-app selection for a shared clientId and tenant override,
-  covering Interactive and DeviceCode routing with available test app registrations.
+- [x] Final multi-tenant sign-out behavior with Interactive and DeviceCode: account
+  cleared, cloud card Not checked, selector unlocked and reset to its placeholder.
+- [x] Retain earlier operator-reported own-app/certificate authentication tests and
+  automated shared/per-tenant clientId routing coverage; no blanket authentication rerun.
+
+The exact shared/per-tenant Direct JSON custom-app combinations were not separately
+re-established live in this follow-up. An additional live routing check is deferred
+unless a relevant change or concrete regression warrants it, not marked as a new Pass
+and not a stable gate. Certificate app-only tests do not alone prove delegated GUI routing.
 
 JSON/schema validation, duplicate names/IDs, invalid/conflicting inputs, clientId
 precedence and authentication parameter routing already have automated coverage in
@@ -90,7 +101,7 @@ Windows/OOBE; ARM64 WinPE remains unsupported.
   without cloud authentication; local refresh can generate a new base identity.
 - [x] GUI contract tests cover default No, Backend cloud-known-absent gating,
   cancellation, busy state and failure paths on the tested release commit.
-- [ ] Complete the configured tenant/account display and switching checks in section 1.
+- [x] Complete the configured tenant/account display and switching checks in section 1.
 - [ ] Broader visual polish: 1366x768 and 100/125/150/200% scaling, long names/errors,
   keyboard focus/tab order and Copy activity behavior.
 

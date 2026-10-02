@@ -204,7 +204,7 @@ if (-not $operationHelperMatch.Success -or $operationHelperMatch.Groups['Body'].
 
 foreach ($offboardingEnableContract in @(
     '$btnCloudOffboard.Enabled = $runtimeReady -and $cloudPresent',
-    '$btnLocalOffboard.Enabled = $runtimeReady -and $localStatePresent -and $cloudKnownAbsent',
+    '$btnLocalOffboard.Enabled = Test-GuiLocalResetAvailable',
     '$btnFullOffboard.Enabled = $runtimeReady -and $offboardingStatePresent'
 )) {
     if ($source -notmatch [regex]::Escape($offboardingEnableContract)) {
@@ -307,5 +307,162 @@ foreach ($requiredPolish in @(
         throw "FAIL: Show-WindowsDeviceLink is missing expected GUI polish contract '$requiredPolish'."
     }
 }
+
+# Exercise the actual nested reset policy and click handler without opening WinForms,
+# changing firmware, or authenticating to a tenant.
+$resetFunctions = foreach ($name in @('Test-GuiLocalResetAvailable','Invoke-GuiLocalOffboard')) {
+    $definition = $command.ScriptBlock.Ast.Find({
+        param($node)
+        $node -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -eq $name
+    }, $true)
+    if (-not $definition) { throw "FAIL: GUI reset function '$name' was not found." }
+    $definition.Extent.Text
+}
+$resetScript = [scriptblock]::Create($resetFunctions -join [Environment]::NewLine)
+$localResetCommands = @(
+    'Test-GuiLocalResetAvailable','Confirm-GuiAction','Set-GuiBusy','Set-GuiStatus',
+    'Write-GuiConsole','Write-GuiObject','Reset-WindowsDeviceLinkFirmwareState',
+    'Refresh-LocalView','Show-GuiError'
+)
+foreach ($invocation in $resetScript.Ast.FindAll({
+    param($node) $node -is [System.Management.Automation.Language.CommandAst]
+}, $true)) {
+    if ($invocation.GetCommandName() -notin $localResetCommands) {
+        throw "FAIL: Unexpected command in the local-only reset path: $($invocation.Extent.Text)"
+    }
+}
+$confirmation = $command.ScriptBlock.Ast.Find({
+    param($node)
+    $node -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -eq 'Confirm-GuiAction'
+}, $true)
+if ($confirmation.Extent.Text -notmatch '(?s)if \(\$DefaultNo\)\s*\{\s*\[System.Windows.Forms.MessageBoxDefaultButton\]::Button2' -or
+    $confirmation.Extent.Text -notmatch 'MessageBoxIcon\]::Warning,\s*\$defaultButton') {
+    throw 'FAIL: Reset confirmation must use the No button as its default selection.'
+}
+$absent = [pscustomobject]@{ AssociationPresent=$false; AssociationState='NotAssociated' }
+$present = [pscustomobject]@{ AssociationPresent=$true; AssociationState='Associated' }
+$unknown = [pscustomobject]@{ AssociationPresent=$null; AssociationState='Unknown' }
+$cases = @(
+    @{ Name='Interactive before sign-in'; Method='Interactive'; Cloud=$null; Allowed=$true },
+    @{ Name='DeviceCode before sign-in'; Method='DeviceCode'; Cloud=$null; Allowed=$true },
+    @{ Name='WinPE DeviceCode before sign-in'; Method='DeviceCode'; WinPE=$true; Cloud=$null; Allowed=$true },
+    @{ Name='Interactive unknown cloud'; Method='Interactive'; Cloud=$unknown; Allowed=$true },
+    @{ Name='DeviceCode unknown cloud'; Method='DeviceCode'; Cloud=$unknown; Allowed=$true },
+    @{ Name='Interactive existing cloud record'; Method='Interactive'; Cloud=$present; Allowed=$true },
+    @{ Name='DeviceCode existing cloud record'; Method='DeviceCode'; Cloud=$present; Allowed=$true },
+    @{ Name='Interactive absent cloud'; Method='Interactive'; Cloud=$absent; Allowed=$true },
+    @{ Name='Backend unchecked'; Backend=$true; Cloud=$null; Allowed=$false },
+    @{ Name='Backend unknown'; Backend=$true; Cloud=$unknown; Allowed=$false },
+    @{ Name='Backend present'; Backend=$true; Cloud=$present; Allowed=$false },
+    @{ Name='Backend absent'; Backend=$true; Cloud=$absent; Allowed=$true },
+    @{ Name='Backend cannot use Interactive exception'; Backend=$true; Method='Interactive'; Cloud=$present; Allowed=$false },
+    @{ Name='No local firmware'; Method='Interactive'; Firmware='0/4'; Cloud=$absent; Allowed=$false },
+    @{ Name='Partial local firmware'; Method='DeviceCode'; Firmware='1/4'; Cloud=$null; Allowed=$false },
+    @{ Name='Unsupported runtime'; Method='Interactive'; Unsupported=$true; Cloud=$null; Allowed=$false },
+    @{ Name='Base identity'; Method='DeviceCode'; Firmware='2/4'; Cloud=$null; Allowed=$true },
+    @{ Name='Cancel reset'; Method='Interactive'; Cloud=$null; Allowed=$true; Cancel=$true },
+    @{ Name='Busy reset'; Method='DeviceCode'; Cloud=$null; Allowed=$true; Busy=$true },
+    @{ Name='Reset failure'; Method='Interactive'; Cloud=$null; Allowed=$true; FailReset=$true }
+)
+
+foreach ($case in $cases) {
+    & {
+        param($case, $resetScript)
+        . $resetScript
+        $backendMode = [bool]$case.Backend
+        $Method = [string]$case.Method
+        $isWinPE = [bool]$case.WinPE
+        $script:WdlGuiSessionAuthenticated = $false
+        $script:WdlGuiBusy = [bool]$case.Busy
+        $script:WdlGuiSupport = [pscustomobject]@{ Supported=(-not $case.Unsupported) }
+        $script:WdlGuiLocalAssociation = [pscustomobject]@{
+            FirmwareState=$(if ($case.Firmware) { $case.Firmware } else { '4/4' })
+        }
+        $script:WdlGuiCloudStatus = $case.Cloud
+        $script:GuiResetTrace = New-Object System.Collections.Generic.List[string]
+        $script:GuiResetPrompt = $null
+        $script:GuiResetStatus = $null
+
+        function Confirm-GuiAction {
+            param($Title, $Message, [switch]$DefaultNo)
+            if (-not $DefaultNo) { throw 'Local reset confirmation must default to No.' }
+            $script:GuiResetTrace.Add('Confirm')
+            $script:GuiResetPrompt = $Message
+            return (-not $case.Cancel)
+        }
+        function Set-GuiBusy {
+            param([bool]$Busy, [string]$StatusText)
+            $script:WdlGuiBusy = $Busy
+        }
+        function Write-GuiConsole {
+            param($Message, [switch]$Command, [switch]$Warning)
+            if ($Warning) { $script:GuiResetTrace.Add('Warning') }
+        }
+        function Write-GuiObject { param($InputObject) }
+        function Reset-WindowsDeviceLinkFirmwareState {
+            [CmdletBinding(SupportsShouldProcess)] param()
+            $script:GuiResetTrace.Add('Reset')
+            if ($case.FailReset) { throw 'Mock firmware reset failure.' }
+        }
+        function Refresh-LocalView { $script:GuiResetTrace.Add('RefreshLocal') }
+        function Set-GuiStatus { param($Message) $script:GuiResetStatus=$Message }
+        function Show-GuiError { param($Message) $script:GuiResetTrace.Add('Error') }
+        function Refresh-CloudView { throw 'Local reset must not check the cloud.' }
+        function Get-GuiAuthParameters { throw 'Local reset must not request authentication.' }
+        function Invoke-GuiSignIn { throw 'Local reset must not sign in.' }
+
+        if ((Test-GuiLocalResetAvailable) -ne $case.Allowed) {
+            throw "FAIL: $($case.Name) availability is incorrect."
+        }
+        Invoke-GuiLocalOffboard
+        $expectedTrace = if (-not $case.Allowed -or $case.Busy) { '' }
+            elseif ($case.Cancel) { 'Confirm' }
+            elseif ($case.FailReset) { 'Confirm,Warning,Reset,Error' }
+            else { 'Confirm,Warning,Reset,RefreshLocal' }
+        if (($script:GuiResetTrace -join ',') -ne $expectedTrace) {
+            throw "FAIL: $($case.Name) unexpected execution: $($script:GuiResetTrace -join ',')."
+        }
+        if ($script:GuiResetPrompt -and ($script:GuiResetPrompt -notmatch 'No online check' -or
+            $script:GuiResetPrompt -notmatch 'registration remains unchanged')) {
+            throw "FAIL: $($case.Name) must disclose the offline scope and remaining cloud registration."
+        }
+        if ($expectedTrace -eq 'Confirm,Warning,Reset,RefreshLocal' -and
+            $script:GuiResetStatus -ne 'Local state reset; cloud registration unchanged') {
+            throw "FAIL: $($case.Name) must not report full offboarding."
+        }
+        if ($case.FailReset -and $script:GuiResetStatus -ne 'Local offboarding failed') {
+            throw 'FAIL: A failed local reset must not report success.'
+        }
+        if (-not [object]::ReferenceEquals($script:WdlGuiCloudStatus, $case.Cloud)) {
+            throw 'FAIL: A local reset must not change or clear the last cloud observation.'
+        }
+        if (-not $case.Busy -and $script:WdlGuiBusy) { throw 'FAIL: Reset must release the busy state.' }
+    } $case $resetScript
+    Write-Host "PASS: $($case.Name)"
+}
+
+# Elevation must be checked before configuration retrieval or GUI/firmware work.
+$elevationGuard = $command.ScriptBlock.Ast.Find({
+    param($node)
+    $node -is [System.Management.Automation.Language.IfStatementAst] -and
+    $node.Clauses[0].Item1.Extent.Text -eq '-not (Test-WindowsDeviceLinkElevation)'
+}, $true)
+if (-not $elevationGuard -or $elevationGuard.Extent.Text -notmatch 'Run as administrator' -or
+    -not $elevationGuard.Find({ param($node) $node -is [System.Management.Automation.Language.ReturnStatementAst] }, $true)) {
+    throw 'FAIL: Non-elevated startup must give actionable guidance and return before opening the dashboard.'
+}
+if ($source.IndexOf('Test-WindowsDeviceLinkElevation') -gt $source.IndexOf('Read-WindowsDeviceLinkConfiguration') -or
+    $source.IndexOf('Test-WindowsDeviceLinkElevation') -gt $source.IndexOf('$form = New-Object')) {
+    throw 'FAIL: Elevation must be checked before configuration retrieval and dashboard creation.'
+}
+$module = Get-Module WindowsDeviceLink | Select-Object -First 1
+$actualElevation = & $module { Test-WindowsDeviceLinkElevation }
+$testIdentity = [Security.Principal.WindowsIdentity]::GetCurrent()
+try {
+    $testPrincipal = New-Object Security.Principal.WindowsPrincipal($testIdentity)
+    $expectedElevation = $testPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+    if ($actualElevation -ne $expectedElevation) { throw 'FAIL: Elevation detection disagrees with the process token.' }
+}
+finally { $testIdentity.Dispose() }
 
 Write-Host 'PASS: Show-WindowsDeviceLink is exported, WinPE-aware, WinForms-based, runtime-path capable, and delegates lifecycle actions to existing cmdlets.'

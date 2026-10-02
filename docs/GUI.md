@@ -4,6 +4,9 @@
 
 ## Start the GUI
 
+Open Windows PowerShell using **Run as administrator**. If the session is not elevated,
+the GUI shows this instruction and stops before loading device state or configuration.
+
 Direct mode is the default. On full Windows the sign-in is Interactive; Windows PE
 defaults to DeviceCode. No tenant ID is required when the sign-in context should choose
 the tenant:
@@ -237,6 +240,28 @@ The DLL must come from an administrator-controlled compatible Windows source. Se
 - **Remove both** — verify/remove cloud state first, then reset local DeviceLink firmware state.
 
 State-changing actions delegate to the existing guarded public cmdlets and retain their safety behavior.
+
+### Reset local state without signing in
+
+In Direct mode, **Reset local** is available with both `Interactive` and `DeviceCode`
+before signing in or checking cloud state, provided the runtime is supported and local
+firmware state is present (`2/4` or `4/4`). This includes starting with just
+`Show-WindowsDeviceLink`: the default is `Interactive` on Windows 11 and `DeviceCode`
+in Windows PE. A tenant catalog does not require a tenant selection for this local action.
+
+Use this when a former employer has removed a transferred device from its cloud
+environment but left the local DeviceLink association behind. No access to that tenant
+is needed for the local reset.
+
+The confirmation defaults to **No** and warns that no online check is performed and
+the device may still be registered in the cloud. A local reset leaves any cloud Device
+Association, Intune enrollment, Entra device and classic Autopilot registration unchanged.
+Windows may create a new local base identity later. The result is not reported as
+complete offboarding or proof that the cloud record is absent.
+
+Backend mode still requires cloud state to be known absent before enabling **Reset local**.
+**Remove both** retains its cloud verification/removal flow. See
+[local cleanup after an ownership transfer](OFFBOARDING.md#local-cleanup-after-an-ownership-transfer).
 
 The dashboard uses a two-by-two status layout: Device and Connection above Local
 association and Cloud association. Device separates manufacturer, model, serial number,

@@ -9,6 +9,10 @@ function Show-WindowsDeviceLink {
     The GUI focuses on inspecting Device Association state, onboarding, and offboarding.
     Lifecycle actions share the same implementations as the WindowsDeviceLink CLI.
 
+    Run from an elevated Windows PowerShell session. In Direct Interactive or DeviceCode mode,
+    Reset local is available without sign-in or a cloud check after explicit
+    confirmation. It changes local DeviceLink firmware only, not cloud registration.
+
     Interactive authentication is the default on full Windows. Windows PE defaults to DeviceCode because Interactive browser authentication is unavailable there. Use -Method and the corresponding authentication parameters to select another supported authentication flow.
 
     Use -Configuration with a JSON file, trusted HTTPS URL, or inline JSON.
@@ -60,6 +64,18 @@ function Show-WindowsDeviceLink {
         [ValidateRange(5,600)]
         [int]$TimeoutSeconds = 120
     )
+
+    # Stop before configuration retrieval, firmware access, or dashboard startup.
+    if (-not (Test-WindowsDeviceLinkElevation)) {
+        Add-Type -AssemblyName System.Windows.Forms -ErrorAction Stop
+        [void][System.Windows.Forms.MessageBox]::Show(
+            "WindowsDeviceLink requires administrator rights to read and manage local DeviceLink state.`n`nClose this session, open Windows PowerShell using 'Run as administrator', and run Show-WindowsDeviceLink again.",
+            'WindowsDeviceLink - Administrator rights required',
+            [System.Windows.Forms.MessageBoxButtons]::OK,
+            [System.Windows.Forms.MessageBoxIcon]::Warning
+        )
+        return
+    }
 
     $outerBoundParameters = @{}
     foreach ($key in $PSBoundParameters.Keys) {
@@ -1022,18 +1038,46 @@ function Show-WindowsDeviceLink {
     function Confirm-GuiAction {
         param(
             [string]$Title,
-            [string]$Message
+            [string]$Message,
+            [switch]$DefaultNo
         )
 
+        $defaultButton = if ($DefaultNo) {
+            [System.Windows.Forms.MessageBoxDefaultButton]::Button2
+        }
+        else {
+            [System.Windows.Forms.MessageBoxDefaultButton]::Button1
+        }
         $result = [System.Windows.Forms.MessageBox]::Show(
             $form,
             $Message,
             $Title,
             [System.Windows.Forms.MessageBoxButtons]::YesNo,
-            [System.Windows.Forms.MessageBoxIcon]::Warning
+            [System.Windows.Forms.MessageBoxIcon]::Warning,
+            $defaultButton
         )
 
         return ($result -eq [System.Windows.Forms.DialogResult]::Yes)
+    }
+
+    function Test-GuiLocalResetAvailable {
+        $support = $script:WdlGuiSupport
+        $local = $script:WdlGuiLocalAssociation
+        $cloud = $script:WdlGuiCloudStatus
+        if (-not $support -or -not $support.Supported -or
+            -not $local -or [string]$local.FirmwareState -notin @('2/4','4/4')) {
+            return $false
+        }
+
+        # Both Direct operator sign-in methods permit an explicitly confirmed offline reset.
+        if (-not $backendMode -and $Method -in @('Interactive','DeviceCode')) {
+            return $true
+        }
+
+        return [bool]($cloud -and (
+            $cloud.AssociationPresent -eq $false -or
+            ([string]$cloud.AssociationState).Trim().ToLowerInvariant() -eq 'notassociated'
+        ))
     }
 
     function Set-GuiCapabilities {
@@ -1050,7 +1094,6 @@ function Show-WindowsDeviceLink {
             $cloudState -eq 'notassociated'
         )
         $cloudPresent = $cloud -and $cloud.AssociationPresent -eq $true
-        $localStatePresent = $local -and ([string]$local.FirmwareState -in @('2/4','4/4'))
         $localAssociated = $local -and [string]$local.FirmwareState -eq '4/4'
         $offboardingStatePresent = $cloudPresent -or $localAssociated
         $selectedTenantId = Get-SelectedTenantId
@@ -1097,11 +1140,14 @@ function Show-WindowsDeviceLink {
         $btnAssign.Enabled = $runtimeReady -and $targetReadyForAssociation -and -not $alreadyPreassociatedOrAssociatedInTarget
         $btnAssociate.Enabled = $canAssociate -and $targetReadyForAssociation -and -not $alreadyAssociatedInTarget
         $btnCloudOffboard.Enabled = $runtimeReady -and $cloudPresent -and ($backendMode -or $directTenantReady)
-        $btnLocalOffboard.Enabled = $runtimeReady -and $localStatePresent -and $cloudKnownAbsent
+        $btnLocalOffboard.Enabled = Test-GuiLocalResetAvailable
         $btnFullOffboard.Enabled = $runtimeReady -and $offboardingStatePresent -and ($backendMode -or $directTenantReady)
 
         $toolTip.SetToolTip($btnCloudOffboard, 'Remove only the tenant-side Device Association record.')
-        $localResetToolTip = if (-not $cloud) {
+        $localResetToolTip = if (-not $backendMode -and $Method -in @('Interactive','DeviceCode')) {
+            'Reset local DeviceLink state without sign-in or a cloud check. Any cloud registration remains unchanged; explicit confirmation is required.'
+        }
+        elseif (-not $cloud) {
             'Check cloud state before resetting the local DeviceLink firmware state.'
         }
         elseif (-not $cloudKnownAbsent) {
@@ -1912,18 +1958,36 @@ function Show-WindowsDeviceLink {
     function Invoke-GuiLocalOffboard {
         if ($script:WdlGuiBusy) { return }
 
-        if (-not (Confirm-GuiAction -Title 'Reset local state' -Message 'Reset all known local DeviceLink UEFI variables? Windows may create a new base identity automatically. The tenant-side Device Association record will remain unchanged.')) {
+        if (-not (Test-GuiLocalResetAvailable)) {
+            Set-GuiStatus 'Local reset is unavailable for the current mode or device state'
+            return
+        }
+
+        $message = @(
+            'Reset all known local DeviceLink UEFI variables?'
+            ''
+            'No online check will be performed. The device may still be registered in the cloud, even if it is not present in a previously checked tenant.'
+            'Any cloud Device Association registration remains unchanged. Only the organization managing that registration can remove it.'
+            ''
+            'This does not remove Intune enrollment, the Entra device, or classic Windows Autopilot registration.'
+            'Windows may create a new local base identity automatically.'
+            ''
+            'Continue with the local reset only?'
+        ) -join [Environment]::NewLine
+
+        if (-not (Confirm-GuiAction -Title 'Reset local state only' -Message $message -DefaultNo)) {
             return
         }
 
         Set-GuiBusy -Busy $true -StatusText 'Resetting local DeviceLink state...'
         try {
+            Write-GuiConsole -Message 'Local reset only: no online check is performed; any cloud registration remains unchanged.' -Warning
             Write-GuiConsole -Message 'Reset-WindowsDeviceLinkFirmwareState' -Command
             $result = Reset-WindowsDeviceLinkFirmwareState -Confirm:$false
             Write-GuiObject $result
 
             Refresh-LocalView
-            Set-GuiStatus 'Local offboarding completed'
+            Set-GuiStatus 'Local state reset; cloud registration unchanged'
         }
         catch {
             Set-GuiStatus 'Local offboarding failed'

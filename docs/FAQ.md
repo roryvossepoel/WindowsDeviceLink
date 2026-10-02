@@ -292,7 +292,8 @@ It does **not** remove the local DeviceLink firmware variables.
 
 ## I want to remove/reset only the local DeviceLink identity
 
-Use:
+This does not require a cloud check or access to the former tenant. From an elevated
+Windows PowerShell session, use:
 
 ```powershell
 Reset-WindowsDeviceLinkFirmwareState
@@ -309,6 +310,12 @@ Immediately after a successful reset, all four known DeviceLink firmware variabl
 After reset, a reboot alone can leave the device at `0/4`. A later DeviceLink identity retrieval, such as `Get-WindowsDeviceLink`, can materialize a **new** local base identity and return the device to `2/4`.
 
 This operation does **not** delete the tenant-side Device Association.
+
+In the GUI, start `Show-WindowsDeviceLink` and choose **Reset local** without signing in.
+This is available in both Direct `Interactive` and `DeviceCode` mode, including the
+environment-specific default when `-Method` is omitted. The confirmation defaults to
+**No** and warns that any remaining cloud registration is unchanged. Backend mode
+continues to require a cloud check. See the [GUI reset guidance](GUI.md#reset-local-state-without-signing-in).
 
 ## I want to completely start over with Device Association
 

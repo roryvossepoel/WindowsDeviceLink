@@ -56,6 +56,13 @@ before changing the layout.
 - [ ] Check initial, loading, success, no-op, unknown and blocked states.
 - [ ] Check progress and actionable failure text; verify Copy and Clear activity actions.
 - [ ] Confirm removal/reset dialogs describe the affected tenant and local/cloud scope.
+- [ ] Start without elevation: verify the administrator guidance appears before the
+  dashboard, configuration retrieval, or firmware access.
+- [ ] Start Direct GUI with no parameters and with explicit Interactive/DeviceCode.
+  Before sign-in, verify **Reset local** works offline after confirmation, **No** is
+  the default, cancellation changes nothing, and cloud state is not presented as removed.
+- [ ] Repeat the local reset path in AMD64 WinPE DeviceCode; Backend must remain
+  blocked until its cloud lookup confirms absence. Record the tested source commit.
 - [ ] Recheck action availability after sign-out, a failed operation and a tenant change.
 
 Done when findings are fixed or explicitly documented and affected paths are retested.

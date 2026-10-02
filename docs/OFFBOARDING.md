@@ -146,6 +146,28 @@ flowchart LR
     A --> B --> C --> D --> E --> F
 ```
 
+## Local cleanup after an ownership transfer
+
+If a device was transferred to a private owner and the organization removed the cloud
+registration but left the local association behind, the new owner can reset the local
+DeviceLink state without signing in to the former tenant.
+
+Open Windows PowerShell using **Run as administrator**, start `Show-WindowsDeviceLink`,
+and choose **Reset local**. Both Direct `Interactive` and `DeviceCode` support this,
+including the default method when none is specified. Read the local-only warning and
+explicitly confirm; **No** is the default. No cloud lookup or authentication is performed
+by this action. Backend mode keeps its existing cloud-check requirement.
+
+The equivalent CLI command is:
+
+```powershell
+Reset-WindowsDeviceLinkFirmwareState
+```
+
+This resets local firmware only. It cannot confirm that the organization removed its
+cloud record, and it does not remove any remaining cloud registration or MDM enrollment.
+Any remaining organization-side records must still be handled by that organization.
+
 ## What the firmware reset does not remove
 
 Historical `HKLM:\SOFTWARE\Microsoft\Provisioning\AutopilotSettings\<LinkId>_TenantIdHint` and `_DiscoveryUrl` entries can also remain after the UEFI DeviceLink variables are reset. These stale entries are not active tenant affinity by themselves. WindowsDeviceLink only considers a registry hint when its LinkId prefix exactly matches the **current** UEFI `DeviceLinkId`.

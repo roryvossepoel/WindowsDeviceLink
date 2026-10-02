@@ -10,11 +10,11 @@ The module manifest is the source of truth:
 src/WindowsDeviceLink/WindowsDeviceLink.psd1
 ```
 
-A preview such as `0.12.0-preview1` is represented by these manifest fields:
+A preview such as `0.12.1-preview1` is represented by these manifest fields:
 
 ```powershell
 @{
-    ModuleVersion = '0.12.0'
+    ModuleVersion = '0.12.1'
     PrivateData = @{
         PSData = @{ Prerelease = 'preview1' }
     }
@@ -24,7 +24,7 @@ A preview such as `0.12.0-preview1` is represented by these manifest fields:
 The corresponding GitHub tag is:
 
 ```text
-v0.12.0-preview1
+v0.12.1-preview1
 ```
 
 For a stable release, leave `Prerelease` empty/remove the prerelease label and use a tag such as `v1.0.0`.
@@ -87,7 +87,7 @@ Use GitHub Actions -> **Create GitHub Release** -> **Run workflow**.
 The optional `expected_version` input is a safety check. For example:
 
 ```text
-0.12.0-preview1
+0.12.1-preview1
 ```
 
 The workflow derives `v<version>` from the manifest, verifies that the source is the current GitHub-Verified `main` commit, and creates the prerelease/tag without moving an existing tag.
@@ -99,7 +99,7 @@ The immutable tag is required before Gallery publication.
 After the GitHub release/tag exists, use GitHub Actions -> **Publish PowerShell Gallery** -> **Run workflow** and provide the exact release version, for example:
 
 ```text
-0.12.0-preview1
+0.12.1-preview1
 ```
 
 The Gallery workflow:

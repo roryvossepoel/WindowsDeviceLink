@@ -1,6 +1,8 @@
 # Current validation and polish checklist
 
-Reviewed: 2026-09-28. Current published preview: `0.12.0-preview1`.
+Reviewed: 2026-10-02. Current test candidate: `0.12.1-preview1`.
+Verify publication before using the Gallery installation route; record candidate and
+Gallery package results separately.
 
 Work through the numbered items in order. Record the exact module version and source
 commit used for each run; a later UI fix may need a new candidate and targeted retests.

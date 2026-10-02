@@ -249,3 +249,11 @@ jobs:
 
           $manifest = Test-ModuleManifest -Path $env:WDL_MODULE_PATH -ErrorAction Stop
           Write-Host "Validated WindowsDeviceLink $($manifest.Version) staged package."
+
+      - name: Upload validated module candidate
+        uses: actions/upload-artifact@v4
+        with:
+          name: WindowsDeviceLink-candidate-${{ github.sha }}
+          path: ${{ env.WDL_PACKAGE_ROOT }}
+          if-no-files-found: error
+          retention-days: 14

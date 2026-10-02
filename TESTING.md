@@ -1,21 +1,102 @@
 # WindowsDeviceLink validation matrix
 
-Last updated: 2026-09-28
+Last updated: 2026-10-02
 
 This file preserves recorded validation evidence, including results from earlier previews.
 An earlier Pass does not certify every later package, authentication route or hardware build.
-The current preview is `0.12.0-preview1`; use the [current validation and polish checklist](docs/VALIDATION-CHECKLIST.md)
-for the remaining work, in order. A documentation review does not count as a live test.
+The current published preview is `0.12.1-preview1`; use the [current validation and polish checklist](docs/VALIDATION-CHECKLIST.md)
+for the focused remaining work toward stable. A documentation review does not count as a live test.
 
 ## Current evidence summary
 
 | Area | Recorded evidence | Remaining current-run evidence |
 |---|---|---|
-| Automated regression | Module/package, authentication, configuration, lifecycle and mocked backend tests run in CI | Check the exact candidate commit in [GitHub Actions](https://github.com/roryvossepoel/WindowsDeviceLink/actions) |
-| Backend on Windows 11 AMD64 / ARM64 and AMD64 WinPE | Physical-device lifecycle tests recorded below; ARM64 completion uses full Windows | Targeted regression after relevant changes and final Gallery-package smoke test |
-| Direct CLI / GUI | Earlier Direct operations and DeviceCode behavior validated | Complete current Interactive / DeviceCode and tenant-selection coverage |
+| Automated regression | Module CI and Gallery publication checks passed for the exact 0.12.1-preview1 source commit below | Run CI on the final stable commit/package |
+| Backend on Windows 11 AMD64 / ARM64 and AMD64 WinPE | Physical-device lifecycle tests recorded below; ARM64 completion uses full Windows | Retest affected paths only after relevant changes; no blanket lifecycle rerun for stable |
+| Direct CLI / GUI | 0.12.1-preview1 Windows 11 AMD64 authentication and lifecycle checks passed on 2026-10-02; see the run record below | Live Direct Configuration tenant/client selection; wider failure/UI coverage remains separately identified |
 | Direct JSON configuration | File, HTTPS, inline JSON and client routing covered offline | Live fixed-name, tenant-switching and client-selection checks |
-| Published Gallery installation | Earlier package tests retained below | Record the final candidate/package version separately from source-checkout tests |
+| Published Gallery installation | Actual 0.12.1-preview1 Gallery install/import and GUI/CLI use passed on Windows 11 AMD64 | Short installation/import/startup check of the eventual stable Gallery artifact |
+
+## Published 0.12.1-preview1 Windows 11 AMD64 validation
+
+Execution date: **2026-10-02**. These results consolidate operator-provided screenshots,
+CLI output and explicit pass confirmations from the live session. They are not tests
+executed by the documentation editor. Private screenshots, payloads and device/tenant
+identifiers are deliberately not copied into this public record.
+
+| Field | Evidence |
+|---|---|
+| Artifact | Actual PowerShell Gallery package `0.12.1-preview1`; manifest version `0.12.1` |
+| Source | `8237dda9fc9ed517a1dcccd43ca64fdf4159d256`, tag `v0.12.1-preview1` |
+| Device | Physical Microsoft Surface Laptop 3, Windows 11 AMD64 |
+| Host | Native Windows PowerShell 5.1, elevated for firmware operations |
+| Runtime | System `Windows.Management.Service.dll`, version `10.0.26100.8875`, `RegisteredWinRT` |
+| OS build | Not separately captured in this consolidated run record; the DLL version is not the OS build |
+| Routes | Direct GUI Interactive and DeviceCode; Direct CLI local and explicit-tenant Interactive |
+| Automated gates | [Module CI](https://github.com/roryvossepoel/WindowsDeviceLink/actions/runs/36975196204), [GitHub release](https://github.com/roryvossepoel/WindowsDeviceLink/actions/runs/36979932843), [Gallery publication](https://github.com/roryvossepoel/WindowsDeviceLink/actions/runs/36980090659): success on this source commit |
+
+### GUI results
+
+- Gallery installation/import and GUI startup with the expected preview version passed.
+- Interactive sign-in, cloud refresh, session reuse, sign-out/re-sign-in and cancelled
+  sign-in followed by a successful retry passed.
+- DeviceCode sign-in, cloud refresh, session reuse and sign-out/re-sign-in passed.
+  DeviceCode expiry was not exercised in this run.
+- DeviceCode pre-association produced cloud `preassociated` with local base firmware
+  `2/4`; completion produced cloud `associated` and local firmware `4/4` with the same
+  cloud Association ID.
+- Cloud-only removal succeeded; a separate refresh confirmed absence while local
+  associated firmware remained `4/4`.
+- Signed-out DeviceCode local reset, without a cloud check, showed the warning and
+  changed `4/4` to a new base `2/4` identity after local refresh.
+- Default `Show-WindowsDeviceLink` (Interactive, signed out) showed the local-only
+  warning and reset an existing `2/4` identity to a new `2/4` identity after refresh.
+  A separate offline Interactive `4/4` source-state test is not claimed here.
+- The operator also confirmed direct Associate from base identity, combined
+  offboarding, and CSV export while signed out. Those cases were reported as passed;
+  their raw outputs are not retained in this record.
+
+The administrator guidance and reset cancellation behavior were visually/operator
+validated earlier in the same session on the source candidate before Gallery
+publication. Default **No**, cancellation, failed reset, busy-state handling and
+Backend cloud-known-absent gating also have automated GUI contract coverage. The
+default keyboard focus was not independently established by the screenshots.
+
+### CLI results
+
+| Scenario | Observed result |
+|---|---|
+| Local identity and status | Same Link ID as GUI; base `2/4`; `CloudChecked=False`; no identity/firmware errors |
+| Explicit-tenant Interactive status | `CloudChecked=True`, `AssociationPresent=False`, `NotAssociated`; repeated query reused the session |
+| `Register-WindowsDeviceLink` | Registration returned `preassociated`; independent status lookup returned the same Association ID; local state stayed `2/4` |
+| `Complete-WindowsDeviceLinkAssociation` | `Changed=True`, `AssociatedLocally`, firmware `4/4`, JWT `Valid`, `IdentityMatch=True`, native error `0x00000000` |
+| Repeat completion | `Changed=False`, `AlreadyComplete=True`; no new native configure operation, retry, cleanup or reboot |
+| Cloud verification after completion | `associated`, same Association ID, firmware `4/4`, no association error |
+| Removal by Association ID | `Removed=True`; independent lookup confirmed `NotAssociated` while local firmware remained `4/4` |
+| Local reset with `-Confirm:$false -PassThru` | All four variables removed and verified absent; each `Present=False`, size `0`, Win32 `203` |
+| Repeat reset, with and without `-PassThru` | No firmware state present; no removal action; remained `0/4` |
+| Local status after reset | New Link ID and base `2/4`; JWT variables absent; `CloudChecked=False`; no errors |
+
+JWT `Valid` here describes the module's structure/time/identity checks.
+`SignatureValidation=NotPerformed` was reported; cryptographic signature verification
+is not claimed. Native configuration took 21.6 seconds in this run; the total command
+time included the human confirmation wait and is not a configuration benchmark.
+
+The firmware timestamp changed during completion while the Link ID stayed the same.
+`FirmwareCreationTimeUtc` must therefore not be presented as an immutable original
+identity creation time. It remained distinct from the per-payload timestamp.
+
+During Interactive testing, passkey selection also failed independently in Edge and
+Chrome. Restarting Windows restored the dialog and authentication succeeded. The root
+cause was not established; no WindowsDeviceLink code fix is inferred from that recovery.
+
+### Scope and remaining evidence
+
+This run does not certify every architecture, tenant configuration or failure mode.
+Live Direct Configuration file/HTTPS/inline loading, fixed tenant labels, switching
+configured tenants and effective client-app selection remain pending. Earlier Backend,
+ARM64, WinPE and OOBE evidence below remains applicable to its recorded builds; those
+complete lifecycles are not being repeated solely to remove the preview label.
 
 Do not treat the [historical 0.10 test plan](docs/TEST-MATRIX-0.10.0.md) as the current
 authentication matrix. Current Direct authentication is Interactive or DeviceCode;
@@ -385,7 +466,7 @@ See [`docs/WEBHOOK-SCHEMA-v1.md`](docs/WEBHOOK-SCHEMA-v1.md).
 
 ## Published preview
 
-The repository validation described above covers the `0.12.0-preview1` candidate,
+The earlier repository validation described above covers the `0.12.0-preview1` candidate,
 including the operator GUI on physical AMD64 and ARM64 Windows 11 and AMD64 Windows PE hardware.
 The GUI lifecycle tests cover pre-association, association, idempotency,
 cloud/local/full offboarding, stale local/cloud combinations, tenant-source correlation,
@@ -402,9 +483,10 @@ compatibility scope; they are not all required for the next preview.
 - Trusted code signing; the initial SignPath Foundation application was reviewed but not approved because the project does not yet have enough external adoption/visibility signals. Revisit SignPath or another trusted signing path later.
 - Retest normal WinPE `Install-Module` without `-SkipPublisherCheck` after signing.
 - Retest and optimize the beta Device Association serial-number server-side lookup; the current client-side fallback is functionally correct.
-- Complete the Direct-mode `0.12.0-preview1` smoke-test matrix without the Function App,
-  including implicit sign-in tenant, explicit tenant selection, local/HTTPS JSON catalog,
-  New and target-present no-op behavior in Windows 11 and AMD64 Windows PE.
+- Finish the remaining live Direct Configuration checks (fixed tenant label, JSON
+  loading, tenant switching and client-app selection). The 2026-10-02 record above
+  covers the published 0.12.1-preview1 Windows 11 AMD64 base authentication/lifecycle;
+  do not restart the entire historical Direct or Backend matrix.
 - Harden and validate the experimental Bicep/ARM Deploy to Azure route tracked in issue #43.
 - Additional Windows 11 / WinPE builds and OEMs/models.
 - Non-Global Microsoft clouds.
@@ -415,6 +497,7 @@ Offline checks cover JSON file/HTTPS/inline loading, strict schema validation, d
 names and IDs, clientId precedence, conflicting parameters, single-tenant fixed labels,
 multitenant selection and client routing for Interactive/DeviceCode.
 
-Remaining live UI checks: fixed tenant name before/after sign-in and sign-out;
+Remaining live UI checks for stable: fixed tenant name before/after sign-in and sign-out;
 switch tenants after sign-out; verify the shared/overridden client app and authenticated
-tenant; repeat DeviceCode in WinPE. Backend catalog behavior must remain unchanged.
+tenant. WinPE-specific Direct Configuration coverage is deferred as described in the
+current checklist, not marked as passed. Backend catalog behavior must remain unchanged.

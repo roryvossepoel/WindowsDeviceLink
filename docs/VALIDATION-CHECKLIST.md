@@ -1,132 +1,148 @@
 # Current validation and polish checklist
 
-Reviewed: 2026-10-02. Current test candidate: `0.12.1-preview1`.
-Verify publication before using the Gallery installation route; record candidate and
-Gallery package results separately.
+Reviewed: 2026-10-02 after the live Windows 11 AMD64 test session.
+Current published and tested Gallery package: `0.12.1-preview1`.
 
-Work through the numbered items in order. Record the exact module version and source
-commit used for each run; a later UI fix may need a new candidate and targeted retests.
-This is the active checklist. [TESTING.md](../TESTING.md) retains previous evidence;
-the 0.10 matrix and 0.4.x lifecycle plan are historical documents.
+This checklist separates current passes, earlier evidence, remaining live checks and
+optional polish. [TESTING.md](../TESTING.md#published-0121-preview1-windows-11-amd64-validation)
+records the tested artifact, source commit, environment and observed results. Earlier
+passes remain tied to their recorded versions; they are not relabeled as new tests.
+The 0.10 matrix and 0.4.x lifecycle plan are historical documents.
 
-No new hardware tests were performed during this documentation review. Pending means
-that a complete current-run record is still needed, not that the feature has never worked.
-Previously recorded Backend lifecycle results remain valid evidence for the tested builds.
+The agreed route toward stable is: record completed tests, finish live Direct
+Configuration checks, correct release-facing documentation, then validate and publish
+the final package. Do not repeat full Backend, ARM64 or WinPE lifecycles unless a
+relevant change or a concrete regression warrants it. Unknown or untested behavior is
+not marked Pass merely because the release scope has been narrowed.
 
 ## 1. Direct on Windows 11
 
-**Status: Pending current-run evidence.** Start on physical AMD64 Windows 11; repeat
-the authentication and tenant-selection paths on ARM64 using native ARM64 PowerShell.
+**Status: Core GUI/CLI checks passed on Windows 11 AMD64; live Configuration checks remain.**
 
-- [ ] Interactive: sign in, cancel/retry, refresh cloud, sign out and sign in again.
-- [ ] DeviceCode: sign in once, reuse the session, refresh, handle expiry and sign out.
-- [ ] Test CLI and GUI with the sign-in tenant and with an explicit target tenant.
-- [ ] Check New pre-association, target-present no-op, completion on supported full
-  Windows, and cloud removal. Verify returned objects as well as the displayed state.
-- [ ] Check Direct configuration from a local JSON file, HTTPS and inline JSON.
-- [ ] Check a fixed tenant name and a multiple-tenant selector before/after sign-in.
-- [ ] Sign out, switch tenant, sign in and verify that cloud actions use the new tenant.
-- [ ] Verify shared and tenant-specific client IDs and a denied-permission case.
+- [x] GUI Interactive: sign in, cancel/retry, cloud refresh, session reuse and sign out/in.
+- [x] GUI DeviceCode: sign in, cloud refresh, session reuse and sign out/in.
+- [x] Default GUI sign-in tenant and explicit-tenant Interactive CLI lookup.
+- [x] GUI pre-association, completion, cloud-only removal and local/full offboarding.
+- [x] CLI registration, verified completion, repeated-completion no-op, cloud removal,
+  local reset, repeated-reset no-op and new base identity generation.
+- [x] GUI CSV export while signed out (operator-reported pass).
 
-Done when both supported authentication methods and the tenant-selection paths have
-recorded results. Direct supports multiple tenants but checks one selected tenant per
-operation. Certificate/client-secret authentication belongs to Backend, not Direct.
+The following are the focused remaining live checks, using read-only cloud refresh
+where possible. There is no need to repeat registration or tenant Move to validate
+selection and authentication routing.
+
+- [ ] Load Direct configuration from a local JSON file, inline JSON and trusted HTTPS.
+  A load/display check is sufficient for each source; do not repeat a lifecycle per source.
+- [ ] One configured tenant: correct fixed name before sign-in, after sign-in and after
+  sign-out; authentication and cloud lookup target that tenant.
+- [ ] Multiple configured tenants: select, sign in and refresh; sign out, switch tenant,
+  sign in and refresh; verify the new session/lookup tenant and cleared prior cloud context.
+- [ ] Verify effective client-app selection for a shared clientId and tenant override,
+  covering Interactive and DeviceCode routing with available test app registrations.
+
+JSON/schema validation, duplicate names/IDs, invalid/conflicting inputs, clientId
+precedence and authentication parameter routing already have automated coverage in
+`Configuration-Validation.ps1`. Do not treat those mocked checks as live GUI passes.
+Direct checks one selected tenant per operation; cross-tenant Move belongs to Backend.
 
 ## 2. Direct on AMD64 Windows PE
 
-**Status: Pending current-run evidence.** Use DeviceCode and a compatible
-administrator-supplied runtime DLL; record the WinPE build and DLL version.
+**Status: Earlier runtime/Direct evidence retained; no blanket rerun for stable.**
 
-- [ ] Verify support detection and local status with the DLL present and missing.
-- [ ] Complete DeviceCode sign-in, cloud refresh, pre-association, no-op and removal
-  through CLI and GUI.
-- [ ] Repeat fixed-tenant and multiple-tenant configuration, including tenant switching.
-- [ ] Verify CSV export and the explanation for the unavailable Associate action.
+Earlier live results cover BYO-DLL activation, identity, firmware, DeviceCode operations,
+pre-association/removal and published-package use. Earlier WinPE GUI lifecycle results
+also cover Backend assignment, offboarding and CSV export. See [TESTING.md](../TESTING.md).
+These are distinct routes and must not be conflated.
 
-Done when the pre-association workflow works independently of the Function App.
-Native completion is performed later in Windows 11/OOBE. ARM64 WinPE is unsupported.
+The new Direct Configuration selector and the 0.12.1 signed-out Direct GUI reset have
+not received a new live WinPE run. They remain identified compatibility coverage gaps;
+mocked configuration/GUI tests cover their parameter routing and WinPE guards. Per the
+agreed release scope, a complete WinPE lifecycle rerun is deferred unless relevant code
+changes or evidence of a regression arise.
+
+Retest the affected route after changes to the DLL loader, architecture/environment
+detection, WinPE authentication or firmware behavior. The supported WinPE workflow
+uses an administrator-supplied compatible DLL. Native completion belongs to full
+Windows/OOBE; ARM64 WinPE remains unsupported.
 
 ## 3. Operator UI review
 
-**Status: Pending visual review.** Record findings from the authentication tests above
-before changing the layout.
+**Status: Changed recovery dialogs checked; remaining work is targeted usability polish.**
 
-- [ ] Check 1366x768 and 100%, 125%, 150% and 200% display scaling; content must remain
-  reachable, using scrolling where needed.
-- [ ] Check long tenant/account names, long errors, keyboard focus and tab order.
-- [ ] Make selected tenant, signed-in account, local state and cloud state unambiguous.
-- [ ] Check initial, loading, success, no-op, unknown and blocked states.
-- [ ] Check progress and actionable failure text; verify Copy and Clear activity actions.
-- [ ] Confirm removal/reset dialogs describe the affected tenant and local/cloud scope.
-- [ ] Start without elevation: verify the administrator guidance appears before the
-  dashboard, configuration retrieval, or firmware access.
-- [ ] Start Direct GUI with no parameters and with explicit Interactive/DeviceCode.
-  Before sign-in, verify **Reset local** works offline after confirmation, **No** is
-  the default, cancellation changes nothing, and cloud state is not presented as removed.
-- [ ] Repeat the local reset path in AMD64 WinPE DeviceCode; Backend must remain
-  blocked until its cloud lookup confirms absence. Record the tested source commit.
-- [ ] Recheck action availability after sign-out, a failed operation and a tenant change.
+- [x] Administrator guidance before dashboard startup (pre-publication source candidate).
+- [x] Local-only warning shown in default Interactive and explicit DeviceCode GUI modes.
+- [x] Reset cancellation leaves state unchanged (pre-publication source candidate).
+- [x] Signed-out DeviceCode reset from 4/4 and default Interactive reset from 2/4 succeed
+  without cloud authentication; local refresh can generate a new base identity.
+- [x] GUI contract tests cover default No, Backend cloud-known-absent gating,
+  cancellation, busy state and failure paths on the tested release commit.
+- [ ] Complete the configured tenant/account display and switching checks in section 1.
+- [ ] Broader visual polish: 1366x768 and 100/125/150/200% scaling, long names/errors,
+  keyboard focus/tab order and Copy activity behavior.
 
-Done when findings are fixed or explicitly documented and affected paths are retested.
-Existing GUI behavior is described in the [GUI guide](GUI.md); these are review criteria,
-not a list of confirmed defects.
+The screenshots do not independently prove the default keyboard focus. Offline
+Interactive reset starting at 4/4 was not separately exercised in this run; do not
+expand the recorded 2/4 pass into that claim. Broader UI review is not a requirement to
+repeat every lifecycle. Fix any observed issue that makes controls unreachable or
+misrepresents the selected tenant/local/cloud scope.
 
 ## 4. Failure handling and targeted Backend regression
 
-**Status: Core Backend lifecycles already recorded; targeted current-candidate checks pending.**
+**Status: Earlier Backend lifecycle evidence and automated safety coverage retained.**
 
-- [ ] Exercise denied permissions, cancelled/expired sign-in and network interruption.
-- [ ] Confirm failed lookup is Unknown, not NotAssociated; an incomplete or ambiguous
-  Backend lookup must not trigger a mutation.
-- [ ] Verify timeout recovery starts with a fresh lookup instead of blindly repeating
-  a potentially completed write.
-- [ ] Check New, no-op, Move in both directions, repair when applicable, and offboarding
-  after changes affecting those paths. Include source and target verification.
-- [ ] Check unattended Backend CLI catalog, status, assignment and removal without
-  prompts when the supported confirmation inputs are supplied.
-- [ ] Record the Backend authentication profile used. Validate the shared multitenant
-  app route live; isolated per-tenant profiles have mocked regression coverage.
-  If an additional certificate/client-secret route is tested, record it separately.
-- [ ] Inspect output and errors for exposed credentials, raw JWTs or DeviceLink payloads.
+Backend catalog, New/no-op, bidirectional Move and offboarding have earlier physical
+validation. Isolated per-tenant certificate/client-secret profiles have mocked coverage;
+this does not imply every credential profile was tested live.
 
-Done when failures leave a clear, recoverable state and changed lifecycle paths retain
-their safety behavior. Do not repeat every historical test for an unrelated text change.
+Automated tests cover failed Graph lookup classification as Unknown, unsafe-action
+blocking, backend ambiguity, timeout parameter propagation and uncertain-write recovery
+requiring a fresh lookup. Interactive cancel/retry was tested live in the current GUI.
+
+Remaining live coverage gaps are DeviceCode expiry, denied permissions and network
+interruption. Keep them unclaimed. They are additional targeted hardening checks, not
+an instruction to rerun all historical authentication and Backend combinations before
+stable. Exercise them if a relevant code change or concrete finding warrants it.
+
+Unattended Backend catalog/status/assignment/removal should likewise only receive a new
+live regression run after changes affecting those paths. CLI contract tests cover
+parameter forwarding and supported confirmation behavior; they are not live Azure runs.
+
 Device Association cleanup does not itself end MDM enrollment; follow [offboarding](OFFBOARDING.md).
 
 ## 5. Deployment chain through OOBE
 
-**Status: Pending a consolidated run record for this checklist.** Earlier Windows/OOBE
-and pre-association evidence is retained in TESTING.md.
+**Status: Earlier Windows/OOBE and WinPE evidence retained; no new full deployment run required.**
 
-- [ ] Pre-associate in AMD64 WinPE, install Windows 11 and complete OOBE with network access.
-- [ ] Verify the intended tenant and Device Association state in local and cloud views.
-- [ ] Record enrollment and provisioning results separately: Associated alone does not
-  mean Intune enrollment or application delivery is complete.
-- [ ] Repeat a transition with an existing Autopilot v1 registration, leaving that object
-  in place and recording the resulting device preparation flow.
-
-Done when the complete handoff is evidenced. See the [migration FAQ](FAQ.md#do-i-need-to-delete-the-autopilot-v1-object-before-transitioning-to-device-preparation).
+Do not infer completed Intune enrollment or application delivery from Associated alone.
+A consolidated new WinPE-to-OOBE run and a specifically recorded v1/v2 coexistence
+transition remain additional evidence opportunities, not newly imposed gates for an
+unchanged deployment route. The [migration FAQ](FAQ.md#do-i-need-to-delete-the-autopilot-v1-object-before-transitioning-to-device-preparation)
+describes the intended transition; it is not itself a physical test report.
 
 ## 6. Package and release verification
 
-**Status: Final candidate/artifact evidence pending.**
+**Status: Published preview validated; final stable artifact checks remain.**
 
-- [ ] Run CI against the exact source commit, including documentation checks.
-- [ ] Install the candidate in a clean session and verify the loaded version and module
-  path on Windows 11 AMD64, Windows 11 ARM64 and AMD64 WinPE.
-- [ ] Check support, local status, GUI startup and one appropriate cloud operation.
-- [ ] Verify the staged package contains no Microsoft runtime DLL or environment credentials.
-- [ ] After publication, repeat the short smoke test using the actual Gallery artifact
-  and record that package separately from the source checkout/candidate.
-- [ ] Record the WinPE installation route and whether the documented unsigned-package
-  workaround was required. Retest without it only when the signing situation changes.
+- [x] Module CI passed for preview source `8237dda9fc9ed517a1dcccd43ca64fdf4159d256`.
+- [x] GitHub release and Gallery workflows passed for the same immutable preview source.
+- [x] Actual Gallery package 0.12.1-preview1 installed/imported on Windows 11 AMD64;
+  GUI startup, local status and cloud operations passed.
+- [x] Today's live results and their limitations recorded in TESTING.md.
+- [ ] Prepare the stable manifest/version, release notes and current installation guidance.
+- [ ] Run CI, including documentation/package checks, against the exact final stable commit.
+- [ ] Review the final public changes/package for environment identifiers, credentials,
+  raw identity/JWT content and excluded Microsoft runtime binaries.
+- [ ] Publish the immutable stable GitHub release/tag and matching Gallery artifact.
+- [ ] Perform one short actual stable Gallery install/import/version and GUI-startup check.
 
-Done when the artifact users install matches the tested release and documentation.
-Documentation-only updates do not require republishing an unchanged module.
+Do not republish unchanged module code solely for documentation updates. Earlier ARM64
+and WinPE evidence remains in TESTING.md; no complete lifecycle rerun is required for a
+version-label change. Retest WinPE installation without its documented unsigned-package
+workaround only when the signing situation changes. See [RELEASING.md](RELEASING.md).
 
 ## 7. Final screenshots and documentation pass
 
-**Status: Two sanitized examples published; remaining state-specific images pending.**
+**Status: Two sanitized examples published; additional images are non-blocking polish.**
 
 - [x] README Backend GUI overview with a caption.
 - [x] README PowerShell CLI status example with a caption explaining NotAssociated.
@@ -154,7 +170,7 @@ For each completed block, append a sanitized record here or link to a public tes
 | Before / expected / observed | Local and cloud state, result decision and verification |
 | Result | Pass, Fail or Blocked, with a sanitized evidence link and follow-up |
 
-Leave untested combinations unchecked. Do not retain real tenant/user/device identifiers,
+Leave untested combinations unchecked or explicitly identified as deferred; deferred is not Pass. Do not retain real tenant/user/device identifiers,
 API keys, device codes, raw JWTs or DeviceLink payloads in public evidence.
 
 ## Separate follow-up projects

@@ -7,19 +7,64 @@
 [![Windows 11 and AMD64 WinPE](https://img.shields.io/badge/Platform-Windows%2011%20%7C%20AMD64%20WinPE-blue)](#requirements)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-**Prepare Windows devices for Windows Autopilot device preparation — from PowerShell or an optional GUI.**
+**The complete Device Association lifecycle for Windows Autopilot device preparation.**
 
-WindowsDeviceLink is an open-source PowerShell module for **Device Association**. Pre-associate a physical device with an Intune tenant before OOBE, inspect its local and cloud state, and manage association, recovery and offboarding. Use it on supported Windows 11 devices or prepare devices from AMD64 Windows PE.
+WindowsDeviceLink is an open-source PowerShell module for onboarding physical devices
+before Windows is installed, managing them across Intune tenants, and safely offboarding
+them at the end of their journey. Generate the TPM-backed DeviceLink identity and
+pre-associate the device from **AMD64 Windows PE**, then let Windows complete Device
+Association during OOBE.
 
-[Get started](#quick-start) · [Choose Direct or Backend](#choose-a-mode) · [Lifecycle](#device-association-lifecycle) · [FAQ](docs/FAQ.md)
+Use the operator GUI for technician-led preparation, PowerShell for deployment
+automation, Direct mode for delegated Microsoft Graph access, or the included
+**Azure Function App API** for centralized multitenant, reseller and OEM-style
+workflows. The Function App API is the recommended route for structured multitenant
+and unattended use.
 
-## Why use WindowsDeviceLink?
+[Get started](#quick-start) · [Choose Direct or Backend](#choose-a-mode) · [Lifecycle](#device-association-lifecycle) · [Windows PE](#windows-pe-workflow) · [FAQ](docs/FAQ.md)
 
-- **Prepare devices before Windows deployment.** Generate the DeviceLink identity and pre-associate from Windows 11 or compatible WinPE; Windows can complete association during OOBE.
-- **Use the interface that fits the job.** Run PowerShell cmdlets from the console, integrate them into deployment scripts, or use the operator GUI.
-- **Work with one or multiple tenants.** Both Direct and Backend support multiple tenants. Direct uses operator sign-in for the selected tenant; Backend is recommended for multitenant management, with lookup across configured tenants, unattended assignment and controlled tenant moves.
-- **See what is happening.** Inspect local firmware and tenant-side state, run diagnostics, export the official DeviceLink CSV and follow a documented offboarding flow.
-- **Transition from classic Autopilot.** With Device Association, the existing Autopilot v1 registration can remain while the next OOBE deployment uses device preparation. [How this works](#moving-from-autopilot-v1).
+![WindowsDeviceLink complete onboarding, tenant move and offboarding lifecycle](docs/images/device-association-lifecycle.svg)
+
+## One module for the complete device journey
+
+- **Prepare devices before Windows deployment.** From AMD64 Windows PE, use your own
+  compatible `Windows.Management.Service.dll` to generate the identity and create the
+  tenant-side pre-association before installing Windows 11.
+- **Use a GUI or automate with PowerShell.** Give technicians a guided operator view,
+  integrate the cmdlets into deployment tooling, or run unattended through Backend mode.
+- **Operate across multiple tenants.** Direct mode supports selecting and authenticating
+  to individual tenants. Backend mode adds a central catalog, tenant lookup, unattended
+  assignment and controlled moves between tenants.
+- **Integrate through the included Function App API.** Use authenticated endpoints for
+  tenant-catalog discovery, pre-association, multitenant lookup, New/Update/Move
+  reconciliation, cloud offboarding and authoritative pre/post-state verification.
+  Microsoft Graph credentials remain off Windows and WinPE endpoints.
+- **Manage onboarding through offboarding.** Inspect local and cloud state, pre-associate,
+  complete association, export the official CSV, move devices, remove cloud records and
+  reset local firmware state for reuse or disposal.
+- **Enable OEM and reseller preparation.** The WinPE and Backend building blocks can be
+  integrated into a factory or reseller preparation process, even though Microsoft does
+  not currently offer an official Device Preparation OEM registration channel comparable
+  to classic Autopilot hardware-hash registration.
+- **Transition from classic Autopilot.** An existing Autopilot v1 registration can remain
+  while the next OOBE deployment uses Device Preparation. [How this works](#moving-from-autopilot-v1).
+
+| Scenario | Operator GUI | PowerShell | Authentication | Environment |
+|---|---:|---:|---|---|
+| Technician-led pre-association | Yes | Yes | Interactive, DeviceCode or Backend | Windows 11 and AMD64 WinPE |
+| Automated pre-association | — | Yes | Backend API | Windows 11 and AMD64 WinPE |
+| API integration with tenant lookup and reconciliation | Via Backend | Yes | Function API key; app credentials stay in Azure | Any authorized HTTPS client |
+| Complete local association | Yes | Yes | Direct or Backend | Supported full Windows 11 |
+| Multiple tenants and controlled moves | Yes | Yes | Direct or Backend; Backend recommended | Windows 11 and AMD64 WinPE |
+| Diagnostics and official CSV export | Yes | Yes | Local where possible | Windows 11 and AMD64 WinPE |
+| Cloud removal and local reset | Yes | Yes | Depends on the selected operation | Supported full Windows 11 |
+
+> [!NOTE]
+> Certificate and client-secret authentication are used by the recommended Backend when it
+> connects to Microsoft Graph. Direct mode uses delegated `Interactive` or `DeviceCode`
+> authentication. The workstation or WinPE client authenticates to Backend mode with its
+> API credential. The complete Function App implementation and API endpoints are included
+> in this repository; see the [Azure Function backend](docs/AZURE-BACKEND.md).
 
 > [!IMPORTANT]
 > **Stable release line — source version `1.0.0`.** Releases are unsigned. Native DeviceLink operations use undocumented Windows Runtime interfaces and cloud operations use Microsoft Graph beta APIs. Validate your intended workflow before wider deployment. See [support boundaries](#scope) and [testing status](TESTING.md).

@@ -4,18 +4,39 @@ Last updated: 2026-10-02
 
 This file preserves recorded validation evidence, including results from earlier previews.
 An earlier Pass does not certify every later package, authentication route or hardware build.
-The current published preview is `0.12.1-preview1`; use the [current validation and polish checklist](docs/VALIDATION-CHECKLIST.md)
-for the focused remaining work toward stable. A documentation review does not count as a live test.
+The current stable release is `1.0.0`; use the [current validation and polish checklist](docs/VALIDATION-CHECKLIST.md)
+for follow-up polish and deferred coverage. A documentation review does not count as a live test.
 
 ## Current evidence summary
 
 | Area | Recorded evidence | Remaining current-run evidence |
 |---|---|---|
-| Automated regression | Module CI and Gallery publication checks passed for the exact 0.12.1-preview1 source commit below | Run CI on the final stable commit/package |
+| Automated regression | Module CI and both release workflows passed for stable source `d9aa44fb3cb2418474832b355df8c95720c80e6e` | Retest affected paths after relevant changes |
 | Backend on Windows 11 AMD64 / ARM64 and AMD64 WinPE | Physical-device lifecycle tests recorded below; ARM64 completion uses full Windows | Retest affected paths only after relevant changes; no blanket lifecycle rerun for stable |
 | Direct CLI / GUI | Preview lifecycle checks and subsequent source-build tenant switching/sign-out checks passed on 2026-10-02; see the run record below | Earlier app-authentication evidence retained; wider failure/UI coverage remains separately identified |
 | Direct JSON configuration | Inline, local file and HTTPS loading passed live; fixed-name, tenant switching and final sign-out behavior validated on source builds | Shared/overridden client routing covered offline; no blanket live authentication rerun |
-| Published Gallery installation | Actual 0.12.1-preview1 Gallery install/import and GUI/CLI use passed on Windows 11 AMD64 | Short installation/import/startup check of the eventual stable Gallery artifact |
+| Published Gallery installation | Actual stable 1.0.0 Gallery install/import and GUI startup passed on Windows 11 AMD64 | Broader stable lifecycle repetition is not required |
+
+## Published 1.0.0 Windows 11 AMD64 smoke test
+
+Execution date: **2026-10-02**. The operator installed and imported the actual stable
+PowerShell Gallery package `1.0.0` on the same physical Windows 11 AMD64 Surface Laptop 3
+used for the focused release validation. The module opened successfully and the window
+title displayed **WindowsDeviceLink 1.0.0** without the Preview label. Initial local
+refresh completed with the expected base identity `2/4`; Direct Interactive was signed
+out and the cloud card correctly showed Not checked.
+
+The screenshot used for confirmation contains device identifiers and remains private.
+No new cloud authentication, registration, removal or firmware mutation was performed
+for this final package smoke test. Those behaviors retain the evidence recorded below.
+
+| Release evidence | Result |
+|---|---|
+| Stable source and tag | GitHub-verified main commit `d9aa44fb3cb2418474832b355df8c95720c80e6e`; immutable tag `v1.0.0` |
+| Module CI | Passed on the exact final main commit |
+| GitHub release | Published as stable, not prerelease |
+| PowerShell Gallery | Version `1.0.0` published with `IsPrerelease=False` |
+| Actual Gallery package | Installed/imported successfully; GUI startup and stable title verified |
 
 ## Published 0.12.1-preview1 Windows 11 AMD64 validation
 

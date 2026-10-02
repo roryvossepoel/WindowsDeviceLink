@@ -17,7 +17,7 @@ not marked Pass merely because the release scope has been narrowed.
 
 ## 1. Direct on Windows 11
 
-**Status: Core GUI/CLI checks passed on Windows 11 AMD64; live Configuration checks remain.**
+**Status: Core GUI/CLI, configuration loading, tenant switching and sign-out checks passed; live custom client-app selection remains.**
 
 The first single-tenant inline check found a real 0.12.1-preview1 defect: the fixed
 tenant was displayed as "Determined by sign-in". The array-normalization correction
@@ -31,7 +31,11 @@ The subsequent change clears the cached cloud status and cloud card on sign-out;
 its live Interactive display check passed on source commit
 `b1861088304bdbab3d47450f36508065676188af`. The final requested refinement resets a
 multi-tenant selection to the placeholder on sign-out (fixed single tenants remain);
-that short live check is pending. These fixes are not yet in the Gallery preview.
+its live Interactive and DeviceCode sign-out checks passed on source commit
+`de82a23e87b1256c7a3ccead6cc36e1c7779bc78`. These fixes are not yet in the Gallery preview.
+The same source passed inline/local-file/HTTPS loading and an Interactive tenant switch
+after a Windows restart. Earlier intermittent authentication failures and a passkey-page
+error are recorded in TESTING.md; their root cause remains unproven.
 
 - [x] GUI Interactive: sign in, cancel/retry, cloud refresh, session reuse and sign out/in.
 - [x] GUI DeviceCode: sign in, cloud refresh, session reuse and sign out/in.
@@ -41,16 +45,18 @@ that short live check is pending. These fixes are not yet in the Gallery preview
   local reset, repeated-reset no-op and new base identity generation.
 - [x] GUI CSV export while signed out (operator-reported pass).
 
-The following are the focused remaining live checks, using read-only cloud refresh
+The following tracks focused configuration checks, using read-only cloud refresh
 where possible. There is no need to repeat registration or tenant Move to validate
 selection and authentication routing.
 
-- [ ] Load Direct configuration from a local JSON file, inline JSON and trusted HTTPS.
+- [x] Load Direct configuration from a local JSON file, inline JSON and trusted HTTPS.
   A load/display check is sufficient for each source; do not repeat a lifecycle per source.
 - [x] One configured tenant: correct fixed name before sign-in, after sign-in and after
   sign-out; authentication and cloud lookup target that tenant.
-- [ ] Multiple configured tenants: select, sign in and refresh; sign out, switch tenant,
+- [x] Multiple configured tenants: select, sign in and refresh; sign out, switch tenant,
   sign in and refresh; verify the new session/lookup tenant and cleared prior cloud context.
+- [x] Final multi-tenant sign-out behavior with Interactive and DeviceCode: account
+  cleared, cloud card Not checked, selector unlocked and reset to its placeholder.
 - [ ] Verify effective client-app selection for a shared clientId and tenant override,
   covering Interactive and DeviceCode routing with available test app registrations.
 

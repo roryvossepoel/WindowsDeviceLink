@@ -13,8 +13,8 @@ for the focused remaining work toward stable. A documentation review does not co
 |---|---|---|
 | Automated regression | Module CI and Gallery publication checks passed for the exact 0.12.1-preview1 source commit below | Run CI on the final stable commit/package |
 | Backend on Windows 11 AMD64 / ARM64 and AMD64 WinPE | Physical-device lifecycle tests recorded below; ARM64 completion uses full Windows | Retest affected paths only after relevant changes; no blanket lifecycle rerun for stable |
-| Direct CLI / GUI | 0.12.1-preview1 Windows 11 AMD64 authentication and lifecycle checks passed on 2026-10-02; see the run record below | Live Direct Configuration tenant/client selection; wider failure/UI coverage remains separately identified |
-| Direct JSON configuration | File, HTTPS, inline JSON and client routing covered offline | Live fixed-name, tenant-switching and client-selection checks |
+| Direct CLI / GUI | Preview lifecycle checks and subsequent source-build tenant switching/sign-out checks passed on 2026-10-02; see the run record below | Live custom client-app selection; wider failure/UI coverage remains separately identified |
+| Direct JSON configuration | Inline, local file and HTTPS loading passed live; fixed-name, tenant switching and final sign-out behavior validated on source builds | Live shared/overridden client-app selection; routing already covered offline |
 | Published Gallery installation | Actual 0.12.1-preview1 Gallery install/import and GUI/CLI use passed on Windows 11 AMD64 | Short installation/import/startup check of the eventual stable Gallery artifact |
 
 ## Published 0.12.1-preview1 Windows 11 AMD64 validation
@@ -93,8 +93,8 @@ cause was not established; no WindowsDeviceLink code fix is inferred from that r
 ### Scope and remaining evidence
 
 This run does not certify every architecture, tenant configuration or failure mode.
-Live Direct Configuration file/HTTPS loading and effective client-app selection remain
-pending; subsequent inline/fixed-tenant and switching evidence is recorded below. Earlier Backend,
+Live effective custom client-app selection remains pending; subsequent configuration
+loading, fixed-tenant and switching evidence is recorded below. Earlier Backend,
 ARM64, WinPE and OOBE evidence below remains applicable to its recorded builds; those
 complete lifecycles are not being repeated solely to remove the preview label.
 
@@ -132,8 +132,38 @@ selector was enabled. Historical activity-log entries remain.
 The subsequent operator-requested refinement also resets a multi-tenant selector to
 Select target tenant... and its tenant scope to Not selected on sign-out. A fixed
 single tenant is preserved. The regression test checks that the effective selected
-tenant is empty after multi-tenant sign-out for both Interactive and DeviceCode; the
-live check of this final selection-reset refinement remains pending.
+tenant is empty after multi-tenant sign-out for both Interactive and DeviceCode.
+
+### Subsequent source-build configuration and sign-out validation
+
+On 2026-10-02, the operator tested immutable source commit
+`de82a23e87b1256c7a3ccead6cc36e1c7779bc78` (merged through PR #68; still displaying
+`0.12.1-preview1`, but not the published Gallery artifact):
+
+- Inline two-tenant configuration loaded, and Interactive sign-out cleared the account
+  and cloud card, unlocked the selector and returned it to Select target tenant....
+- Interactive switching and cloud lookup succeeded in both directions across the
+  session. Some attempts failed as described below; an uninterrupted round trip is
+  not claimed. After restarting Windows, the operator confirmed first-tenant sign-in,
+  sign-out and second-tenant sign-in succeeded on this unchanged source build.
+- Local JSON file loading displayed both configured tenants (load/display check only).
+- HTTPS loading of the commit-pinned `configuration-multiple.example.json` displayed
+  Tenant Alpha and Tenant Beta. These fictional tenants were not used for sign-in.
+- DeviceCode sign-in followed by sign-out passed: signed-out status, cleared account,
+  cloud card Not checked and selector reset to Select target tenant.... No device
+  registration, removal or firmware reset was repeated for this UI check.
+
+During the Interactive switching investigation, Graph authentication reported
+`InteractiveBrowserCredential authentication failed: User canceled authentication`
+despite the operator not intentionally cancelling. A fresh PowerShell session still
+reproduced the GUI failure. A separate raw Graph 2.41.0 sign-in test succeeded for both
+tenants; a Microsoft sign-in page also showed a passkey sign-in failure. The GUI switch
+succeeded after a Windows restart. This supports an authentication-environment issue
+as a hypothesis, but does not establish the root cause or prove the GUI uninvolved.
+No authentication code change or automatic retry was introduced to mask the failure.
+
+The shared custom clientId and per-tenant override live checks remain open. Default
+client sign-in success and mocked routing tests do not certify those custom-app cases.
 
 Do not treat the [historical 0.10 test plan](docs/TEST-MATRIX-0.10.0.md) as the current
 authentication matrix. Current Direct authentication is Interactive or DeviceCode;
@@ -520,8 +550,9 @@ compatibility scope; they are not all required for the next preview.
 - Trusted code signing; the initial SignPath Foundation application was reviewed but not approved because the project does not yet have enough external adoption/visibility signals. Revisit SignPath or another trusted signing path later.
 - Retest normal WinPE `Install-Module` without `-SkipPublisherCheck` after signing.
 - Retest and optimize the beta Device Association serial-number server-side lookup; the current client-side fallback is functionally correct.
-- Finish the remaining live Direct Configuration checks (fixed tenant label, JSON
-  loading, tenant switching and client-app selection). The 2026-10-02 record above
+- Finish the remaining live Direct Configuration custom client-app selection checks.
+  Fixed tenant labels, JSON loading, tenant switching and sign-out have live evidence.
+  The 2026-10-02 record above
   covers the published 0.12.1-preview1 Windows 11 AMD64 base authentication/lifecycle;
   do not restart the entire historical Direct or Backend matrix.
 - Harden and validate the experimental Bicep/ARM Deploy to Azure route tracked in issue #43.
@@ -534,7 +565,7 @@ Offline checks cover JSON file/HTTPS/inline loading, strict schema validation, d
 names and IDs, clientId precedence, conflicting parameters, single-tenant fixed labels,
 multitenant selection and client routing for Interactive/DeviceCode.
 
-Remaining live UI checks for stable: fixed tenant name before/after sign-in and sign-out;
-switch tenants after sign-out; verify the shared/overridden client app and authenticated
-tenant. WinPE-specific Direct Configuration coverage is deferred as described in the
+Remaining live UI checks for stable: verify the shared/overridden client app and
+authenticated tenant. Loading, fixed-tenant naming, tenant switching and sign-out
+results are recorded above. WinPE-specific Direct Configuration coverage is deferred as described in the
 current checklist, not marked as passed. Backend catalog behavior must remain unchanged.

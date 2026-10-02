@@ -172,7 +172,7 @@ Write-Host 'PASS: single/multiple tenant UI selection, name display and Interact
 # separate operation (for example Refresh local) restored the idle controls.
 Add-Type -AssemblyName System.Windows.Forms
 & {
-    foreach ($name in @('Invoke-GuiSignIn','Clear-GuiSessionAuthentication','Set-GuiBusy')) {
+    foreach ($name in @('Invoke-GuiSignIn','Clear-GuiSessionAuthentication','Set-GuiBusy','Get-SelectedTenantId')) {
         $ast=$gui.Ast.Find({param($n)$n -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $n.Name -eq $name},$true)
         . ([scriptblock]::Create($ast.Extent.Text))
     }
@@ -183,7 +183,6 @@ Add-Type -AssemblyName System.Windows.Forms
         return $control
     }
     function Disconnect-MgGraph { param($ErrorAction) $script:SignOutDisconnected=$true }
-    function Get-SelectedTenantId { '11111111-1111-1111-1111-111111111111' }
     function Get-TenantDisplayName { param($TenantId) 'Tenant Alpha' }
     function Update-GuiTargetTenantDisplay {}
     function Set-GuiCapabilities { $script:SignOutCapabilitiesRefreshed=$true }
@@ -193,11 +192,17 @@ Add-Type -AssemblyName System.Windows.Forms
     $ui=@{Authentication=(New-TestControl);Endpoint=(New-TestControl);TenantScope=(New-TestControl)}
     foreach ($name in @('CloudState','CloudTenant','CloudId','CloudChecked')) { $ui[$name]=New-TestControl }
     $tenantSelector=New-TestControl; $actionsPanel=New-TestControl; $form=New-TestControl
+    $tenantSelector | Add-Member NoteProperty SelectedIndex 1
+    $tenantSelector | Add-Member ScriptProperty SelectedItem { if ($this.SelectedIndex -eq 0) { 'Select target tenant...' } else { 'Tenant Alpha' } }
+    $tenantChoiceLookup=@{'Select target tenant...'=$null;'Tenant Alpha'='11111111-1111-1111-1111-111111111111'}
+    $outerBoundParameters=@{}
     $btnSignIn=New-TestControl; $btnCopyActivity=New-TestControl; $btnClearActivity=New-TestControl
     $statusProgress=New-TestControl; $allActionButtons=@($btnSignIn)
     $backendMode=$false; $usesInteractiveUserAuthentication=$true
     foreach ($Method in @('Interactive','DeviceCode')) {
         foreach ($showTenantSelector in @($true,$false)) {
+            $tenantSelector.SelectedIndex=1
+            $fixedConfigurationTenantId=if ($showTenantSelector) { $null } else { '11111111-1111-1111-1111-111111111111' }
             $script:WdlGuiSessionAuthenticated=$true
             $script:WdlGuiSessionTenantId=Get-SelectedTenantId
             $script:WdlGuiSessionAccountName='operator@example.invalid'
@@ -216,7 +221,14 @@ Add-Type -AssemblyName System.Windows.Forms
             Assert-True ($tenantSelector.Enabled -eq $showTenantSelector) 'Sign-out must immediately unlock only a visible tenant selector'
             Assert-True ($script:SignOutCapabilitiesRefreshed -and $script:SignOutStatus -eq 'Signed out') 'Sign-out must refresh capabilities and status'
             Assert-True ($script:SignOutDisconnected -eq ($Method -eq 'Interactive')) 'Sign-out must disconnect Graph only for Interactive'
-            Assert-True ($ui.Endpoint.Text -eq 'Not signed in' -and $ui.TenantScope.Text -eq 'Tenant Alpha' -and $btnSignIn.Text -eq 'Sign in') 'Sign-out must clear account display and preserve selected tenant'
+            Assert-True ($ui.Endpoint.Text -eq 'Not signed in' -and $btnSignIn.Text -eq 'Sign in') 'Sign-out must clear account display'
+            if ($showTenantSelector) {
+                Assert-True ($tenantSelector.SelectedIndex -eq 0 -and -not (Get-SelectedTenantId)) 'Sign-out must reset the multi-tenant choice to the placeholder with no effective target'
+                Assert-True ($ui.TenantScope.Text -eq 'Not selected' -and $ui.TenantScope.ToolTipText -eq 'Not selected') 'Sign-out must clear the previous tenant scope and tooltip'
+            }
+            else {
+                Assert-True ((Get-SelectedTenantId) -eq $fixedConfigurationTenantId -and $ui.TenantScope.Text -eq 'Tenant Alpha') 'Sign-out must preserve a fixed configuration tenant'
+            }
             Assert-True ($null -eq $script:WdlGuiCloudStatus) 'Sign-out must discard cached cloud association state'
             foreach ($name in @('CloudState','CloudTenant','CloudId','CloudChecked')) {
                 Assert-True ($ui[$name].Text -eq 'Not checked' -and $ui[$name].ToolTipText -eq 'Not checked') "Sign-out must clear $name and its tooltip"

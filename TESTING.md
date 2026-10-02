@@ -124,8 +124,16 @@ live sign-in/lookup/sign-out check: the dropdown was enabled immediately after s
 The operator requested a clearer signed-out cloud display after observing the retained
 last result. Sign-out now discards the cached cloud association and resets all four cloud
 card values and tooltips to Not checked, while preserving the selected target and local
-state. Regression coverage checks this for Interactive and DeviceCode; live validation
-of this final display change remains pending. Historical activity-log entries remain.
+state. Regression coverage checks this for Interactive and DeviceCode. The live
+Interactive check on source commit `b1861088304bdbab3d47450f36508065676188af` passed:
+all four cloud-card values returned to Not checked, the account was cleared and the
+selector was enabled. Historical activity-log entries remain.
+
+The subsequent operator-requested refinement also resets a multi-tenant selector to
+Select target tenant... and its tenant scope to Not selected on sign-out. A fixed
+single tenant is preserved. The regression test checks that the effective selected
+tenant is empty after multi-tenant sign-out for both Interactive and DeviceCode; the
+live check of this final selection-reset refinement remains pending.
 
 Do not treat the [historical 0.10 test plan](docs/TEST-MATRIX-0.10.0.md) as the current
 authentication matrix. Current Direct authentication is Interactive or DeviceCode;

@@ -166,3 +166,52 @@ $setup=[scriptblock]::Create($guiText.Substring($start,$end-$start))
     Assert-True (-not (Get-SelectedClientId) -and -not (Get-SelectedTenantId)) 'Default sign-in must not retain configuration choices'
 }
 Write-Host 'PASS: single/multiple tenant UI selection, name display and Interactive/DeviceCode client routing'
+
+# Exercise the real sign-out handler and idle-state restoration. Previously sign-out
+# refreshed action buttons only, leaving a multi-tenant selector disabled until a
+# separate operation (for example Refresh local) restored the idle controls.
+Add-Type -AssemblyName System.Windows.Forms
+& {
+    foreach ($name in @('Invoke-GuiSignIn','Clear-GuiSessionAuthentication','Set-GuiBusy')) {
+        $ast=$gui.Ast.Find({param($n)$n -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $n.Name -eq $name},$true)
+        . ([scriptblock]::Create($ast.Extent.Text))
+    }
+    function New-TestControl {
+        $control=[pscustomobject]@{Enabled=$true;Text='';Visible=$false;UseWaitCursor=$false}
+        $control | Add-Member ScriptMethod Invalidate {param($Children)}
+        $control | Add-Member ScriptMethod Update {}
+        return $control
+    }
+    function Disconnect-MgGraph { param($ErrorAction) $script:SignOutDisconnected=$true }
+    function Get-SelectedTenantId { '11111111-1111-1111-1111-111111111111' }
+    function Get-TenantDisplayName { param($TenantId) 'Tenant Alpha' }
+    function Update-GuiTargetTenantDisplay {}
+    function Set-GuiCapabilities { $script:SignOutCapabilitiesRefreshed=$true }
+    function Set-GuiStatus { param($Text) $script:SignOutStatus=$Text }
+    function Write-GuiConsole { param($Message) }
+    $toolTip=New-Object psobject; $toolTip | Add-Member ScriptMethod SetToolTip {param($Control,$Text)}
+    $ui=@{Authentication=(New-TestControl);Endpoint=(New-TestControl);TenantScope=(New-TestControl)}
+    $tenantSelector=New-TestControl; $actionsPanel=New-TestControl; $form=New-TestControl
+    $btnSignIn=New-TestControl; $btnCopyActivity=New-TestControl; $btnClearActivity=New-TestControl
+    $statusProgress=New-TestControl; $allActionButtons=@($btnSignIn)
+    $backendMode=$false; $usesInteractiveUserAuthentication=$true
+    foreach ($Method in @('Interactive','DeviceCode')) {
+        foreach ($showTenantSelector in @($true,$false)) {
+            $script:WdlGuiSessionAuthenticated=$true
+            $script:WdlGuiSessionTenantId=Get-SelectedTenantId
+            $script:WdlGuiSessionAccountName='operator@example.invalid'
+            $script:WdlGuiSessionAccessToken='synthetic'
+            $script:WdlGuiSessionExpiresUtc=[datetime]::UtcNow.AddHours(1)
+            Set-GuiBusy -Busy $false
+            Assert-True (-not $tenantSelector.Enabled) 'Signed-in tenant selector must stay locked'
+            $script:SignOutDisconnected=$false; $script:SignOutCapabilitiesRefreshed=$false
+            Invoke-GuiSignIn
+            Assert-True (-not $script:WdlGuiSessionAuthenticated -and -not $script:WdlGuiSessionAccessToken -and -not $script:WdlGuiSessionTenantId -and -not $script:WdlGuiSessionAccountName -and -not $script:WdlGuiSessionExpiresUtc) 'Sign-out must clear authentication state'
+            Assert-True ($tenantSelector.Enabled -eq $showTenantSelector) 'Sign-out must immediately unlock only a visible tenant selector'
+            Assert-True ($script:SignOutCapabilitiesRefreshed -and $script:SignOutStatus -eq 'Signed out') 'Sign-out must refresh capabilities and status'
+            Assert-True ($script:SignOutDisconnected -eq ($Method -eq 'Interactive')) 'Sign-out must disconnect Graph only for Interactive'
+            Assert-True ($ui.Endpoint.Text -eq 'Not signed in' -and $ui.TenantScope.Text -eq 'Tenant Alpha' -and $btnSignIn.Text -eq 'Sign in') 'Sign-out must clear account display and preserve selected tenant'
+        }
+    }
+}
+Write-Host 'PASS: Interactive/DeviceCode sign-out clears authentication and immediately restores tenant selection'

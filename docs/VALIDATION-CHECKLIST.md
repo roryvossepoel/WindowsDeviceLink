@@ -21,8 +21,12 @@ not marked Pass merely because the release scope has been narrowed.
 
 The first single-tenant inline check found a real 0.12.1-preview1 defect: the fixed
 tenant was displayed as "Determined by sign-in". The array-normalization correction
-and loading-path regression test require CI and a corrected-build live check. This
-observed tenant-selection defect must be resolved before stable; it is not deferred polish.
+passed CI and a live fixed-tenant sign-in/lookup/sign-out check on source commit
+`3aa88cc4d570cb48e50e366a3c240d9cd41e634d` (not the Gallery preview).
+The two-tenant check then found that sign-out left the selector disabled. The fix
+restores the idle UI state; its regression check covers Interactive and DeviceCode.
+Corrected-build sign-out, switching and second-tenant lookup still require a live check
+before stable. These observed defects are not deferred polish.
 
 - [x] GUI Interactive: sign in, cancel/retry, cloud refresh, session reuse and sign out/in.
 - [x] GUI DeviceCode: sign in, cloud refresh, session reuse and sign out/in.
@@ -38,7 +42,7 @@ selection and authentication routing.
 
 - [ ] Load Direct configuration from a local JSON file, inline JSON and trusted HTTPS.
   A load/display check is sufficient for each source; do not repeat a lifecycle per source.
-- [ ] One configured tenant: correct fixed name before sign-in, after sign-in and after
+- [x] One configured tenant: correct fixed name before sign-in, after sign-in and after
   sign-out; authentication and cloud lookup target that tenant.
 - [ ] Multiple configured tenants: select, sign in and refresh; sign out, switch tenant,
   sign in and refresh; verify the new session/lookup tenant and cleared prior cloud context.

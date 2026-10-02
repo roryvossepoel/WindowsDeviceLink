@@ -104,8 +104,20 @@ instead of the configured fixed tenant name. The GUI's conditional assignment al
 a one-entry catalog to become a scalar, so its PowerShell 5.1 Count check did not select
 the fixed tenant. The correction captures the entire conditional output as an array;
 the regression test now executes that production loading statement instead of injecting
-an already normalized array. A corrected-build live check is still required before
-marking this scenario passed. The published preview does not contain this correction.
+an already normalized array. The corrected source build at
+`3aa88cc4d570cb48e50e366a3c240d9cd41e634d` subsequently passed the live inline fixed-tenant
+check: the configured name persisted before sign-in, after successful Interactive
+sign-in/cloud lookup, and after sign-out. Sign-out cleared the account and disabled
+cloud actions; the last cloud result and its check time remained displayed.
+The published preview does not contain this correction.
+
+The same source build loaded a two-tenant inline configuration and successfully
+signed in and queried the first tenant with the selector locked. The next step found
+a second defect: sign-out cleared authentication but left the selector disabled.
+The sign-out handler now restores the complete idle UI state. A regression check
+executes the production sign-out, authentication-clear and idle-state functions for
+Interactive and DeviceCode, with visible and hidden selectors. Live sign-out,
+tenant switching and the second-tenant lookup remain pending on this correction.
 
 Do not treat the [historical 0.10 test plan](docs/TEST-MATRIX-0.10.0.md) as the current
 authentication matrix. Current Direct authentication is Interactive or DeviceCode;

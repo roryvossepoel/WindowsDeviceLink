@@ -4,7 +4,7 @@
 [![PowerShell Gallery Downloads (latest version, including previews)](https://img.shields.io/badge/dynamic/xml?url=https%3A%2F%2Fwww.powershellgallery.com%2Fapi%2Fv2%2FPackages%3F%2524filter%3DId%2Beq%2B%2527WindowsDeviceLink%2527%2Band%2BIsAbsoluteLatestVersion%2Beq%2Btrue%26%2524select%3DVersion%252CVersionDownloadCount%252CIsPrerelease&query=%2F%2F*%5Blocal-name()%3D'VersionDownloadCount'%5D&label=downloads%20(latest)&color=blue&cacheSeconds=3600)](https://www.powershellgallery.com/packages/WindowsDeviceLink)
 [![Module CI](https://github.com/roryvossepoel/WindowsDeviceLink/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/roryvossepoel/WindowsDeviceLink/actions/workflows/ci.yml)
 [![Windows PowerShell 5.1](https://img.shields.io/badge/Windows%20PowerShell-5.1-blue)](#requirements)
-[![Windows 11 and AMD64 WinPE](https://img.shields.io/badge/Platform-Windows%2011%20%7C%20AMD64%20WinPE-blue)](#requirements)
+[![Windows 11 AMD64 and ARM64; AMD64 WinPE](https://img.shields.io/badge/Platform-Windows%2011%20AMD64%2FARM64%20%7C%20AMD64%20WinPE-blue)](#requirements)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 **The complete Device Association lifecycle for Windows Autopilot device preparation.**
@@ -12,8 +12,12 @@
 WindowsDeviceLink is an open-source PowerShell module for onboarding physical devices
 before Windows is installed, managing them across Intune tenants, and safely offboarding
 them at the end of their journey. Generate the TPM-backed DeviceLink identity and
-pre-associate the device from **AMD64 Windows PE**, then let Windows complete Device
+pre-associate the device from **AMD64 Windows PE (WinPE)**, then let Windows complete Device
 Association during OOBE.
+
+The native Windows 11 lifecycle has been validated on physical **AMD64 and ARM64**
+hardware. Current **WinPE** validation is limited to AMD64; ARM64 WinPE has
+not yet been validated and remains outside the supported scope.
 
 Use the operator GUI for technician-led preparation, PowerShell for deployment
 automation, Direct mode for delegated Microsoft Graph access, or the included
@@ -47,12 +51,12 @@ Existing Autopilot v1 registrations can remain during a transition to Device Pre
 
 | Scenario | Operator GUI | PowerShell | Authentication | Environment |
 |---|---:|---:|---|---|
-| Technician-led pre-association | Yes | Yes | Interactive, DeviceCode or Backend | Windows 11 and AMD64 WinPE |
-| Automated pre-association | — | Yes | Backend API | Windows 11 and AMD64 WinPE |
+| Technician-led pre-association | Yes | Yes | Interactive, DeviceCode or Backend | Windows 11 (AMD64/ARM64) and AMD64 WinPE |
+| Automated pre-association | — | Yes | Backend API | Windows 11 (AMD64/ARM64) and AMD64 WinPE |
 | API integration with tenant lookup and reconciliation | Via Backend | Yes | Function API key; app credentials stay in Azure | Any authorized HTTPS client |
 | Complete local association | Yes | Yes | Direct or Backend | Supported full Windows 11 |
-| Multiple tenants and controlled moves | Yes | Yes | Direct or Backend; Backend recommended | Windows 11 and AMD64 WinPE |
-| Diagnostics and official CSV export | Yes | Yes | Local where possible | Windows 11 and AMD64 WinPE |
+| Multiple tenants and controlled moves | Yes | Yes | Direct or Backend; Backend recommended | Windows 11 (AMD64/ARM64) and AMD64 WinPE |
+| Diagnostics and official CSV export | Yes | Yes | Local where possible | Windows 11 (AMD64/ARM64) and AMD64 WinPE |
 | Cloud removal and local reset | Yes | Yes | Depends on the selected operation | Supported full Windows 11 |
 
 > [!NOTE]
@@ -196,8 +200,8 @@ and [Microsoft's lifecycle guidance](https://learn.microsoft.com/en-us/autopilot
 |---|---|---|---|---|
 | Supported Windows 11 AMD64 | Yes | Yes | Yes | Yes |
 | Supported Windows 11 ARM64 | Yes | Yes | Yes | Yes |
-| Compatible Windows PE AMD64 | Yes | Yes | **Yes** | No — complete in Windows 11 |
-| Windows PE ARM64 | Not supported | Not supported | Not supported | Not supported |
+| Compatible AMD64 WinPE | Yes | Yes | **Yes** | No — complete in Windows 11 |
+| ARM64 WinPE | Not supported | Not supported | Not supported | Not supported |
 
 ARM64 Windows 11 requires native ARM64 PowerShell and the registered system runtime. AMD64 WinPE requires an administrator-supplied compatible runtime.
 
@@ -257,7 +261,10 @@ WindowsDeviceLink does not redistribute or sign Microsoft's runtime DLL. See
 
 WindowsDeviceLink manages **Device Association**, including local identity, tenant-side records, diagnostics and guarded lifecycle operations. It does not assign device preparation policies or configure the apps and settings delivered by Intune.
 
-ARM64 WinPE, direct ARM64 DLL activation, classic Autopilot v1 management, cryptographic association-JWT signature verification and production support guarantees are outside the current scope.
+ARM64 WinPE has not yet been validated and remains unsupported, including direct ARM64
+DLL activation; this work is tracked in [issue #74](https://github.com/roryvossepoel/WindowsDeviceLink/issues/74).
+Classic Autopilot v1 management, cryptographic association-JWT signature verification
+and production support guarantees are also outside the current scope.
 
 ## License
 

@@ -1,119 +1,43 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="820" viewBox="0 0 1440 820" role="img" aria-labelledby="title description">
-  <title id="title">WindowsDeviceLink complete Device Association lifecycle</title>
-  <desc id="description">Technicians, automation and OEM or reseller processes use WindowsDeviceLink from Windows PE or Windows 11 through Direct or Backend mode. The lifecycle covers pre-association, Windows installation and OOBE, service, tenant moves, offboarding and reuse.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="560" viewBox="0 0 1440 560" role="img" aria-labelledby="title description">
+  <title id="title">WindowsDeviceLink device lifecycle</title>
+  <desc id="description">A device is prepared before deployment, added through New, associated during OOBE, managed or moved between tenants, removed during offboarding, and made ready for reuse.</desc>
   <defs>
-    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#f7faff"/>
-      <stop offset="1" stop-color="#eef4fb"/>
-    </linearGradient>
-    <filter id="shadow" x="-10%" y="-10%" width="120%" height="130%">
-      <feDropShadow dx="0" dy="5" stdDeviation="8" flood-color="#172b4d" flood-opacity="0.13"/>
-    </filter>
-    <marker id="arrow" markerWidth="11" markerHeight="11" refX="9" refY="5.5" orient="auto">
-      <path d="M0,0 L10,5.5 L0,11 Z" fill="#3976b9"/>
-    </marker>
-    <marker id="arrowGreen" markerWidth="11" markerHeight="11" refX="9" refY="5.5" orient="auto">
-      <path d="M0,0 L10,5.5 L0,11 Z" fill="#338567"/>
-    </marker>
+    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f7faff"/><stop offset="1" stop-color="#eef4fb"/></linearGradient>
+    <filter id="shadow" x="-15%" y="-15%" width="130%" height="140%"><feDropShadow dx="0" dy="5" stdDeviation="8" flood-color="#172b4d" flood-opacity="0.13"/></filter>
+    <marker id="arrowGreen" markerWidth="11" markerHeight="11" refX="9" refY="5.5" orient="auto"><path d="M0,0 L10,5.5 L0,11 Z" fill="#338567"/></marker>
     <style>
       .title { font: 700 34px 'Segoe UI', Arial, sans-serif; fill: #172b4d; }
       .subtitle { font: 400 18px 'Segoe UI', Arial, sans-serif; fill: #536579; }
-      .section { font: 700 17px 'Segoe UI', Arial, sans-serif; letter-spacing: 1.2px; fill: #536579; }
       .boxTitle { font: 700 19px 'Segoe UI', Arial, sans-serif; fill: #172b4d; }
-      .boxText { font: 400 15px 'Segoe UI', Arial, sans-serif; fill: #536579; }
-      .whiteTitle { font: 700 21px 'Segoe UI', Arial, sans-serif; fill: white; }
-      .whiteText { font: 400 15px 'Segoe UI', Arial, sans-serif; fill: #eaf3ff; }
-      .phaseTitle { font: 700 17px 'Segoe UI', Arial, sans-serif; fill: #172b4d; }
-      .phaseText { font: 400 14px 'Segoe UI', Arial, sans-serif; fill: #536579; }
-      .number { font: 700 17px 'Segoe UI', Arial, sans-serif; fill: white; }
+      .boxText { font: 400 14px 'Segoe UI', Arial, sans-serif; fill: #536579; }
+      .action { font: 700 14px 'Segoe UI', Arial, sans-serif; fill: white; letter-spacing: .5px; }
+      .loop { font: 600 14px 'Segoe UI', Arial, sans-serif; fill: #287457; }
     </style>
   </defs>
-
-  <rect width="1440" height="820" rx="24" fill="url(#background)"/>
-  <text x="720" y="54" text-anchor="middle" class="title">One module for the complete device journey</text>
-  <text x="720" y="84" text-anchor="middle" class="subtitle">Prepare before Windows installation, manage across tenants, and offboard safely</text>
-
-  <text x="64" y="133" class="section">HOW IT STARTS</text>
+  <rect width="1440" height="560" rx="24" fill="url(#background)"/>
+  <text x="720" y="58" text-anchor="middle" class="title">The complete device journey</text>
+  <text x="720" y="89" text-anchor="middle" class="subtitle">Prepare before Windows installation, manage across tenants, and offboard safely for reuse</text>
+  <path d="M210 294 H1230" fill="none" stroke="#b0c1d3" stroke-width="5"/>
   <g filter="url(#shadow)">
-    <rect x="64" y="151" width="290" height="104" rx="15" fill="white"/>
-    <rect x="374" y="151" width="290" height="104" rx="15" fill="white"/>
-    <rect x="684" y="151" width="290" height="104" rx="15" fill="white"/>
+    <rect x="60" y="210" width="240" height="168" rx="18" fill="#e7f2ff" stroke="#8ebce9"/>
+    <rect x="345" y="210" width="240" height="168" rx="18" fill="white"/>
+    <rect x="630" y="210" width="240" height="168" rx="18" fill="#eaf7f1" stroke="#8fc8b2"/>
+    <rect x="915" y="210" width="240" height="168" rx="18" fill="#f3edfa" stroke="#b69ad2"/>
+    <rect x="1200" y="210" width="180" height="168" rx="18" fill="#fff3e9" stroke="#e7ad7e"/>
   </g>
-  <text x="209" y="187" text-anchor="middle" class="boxTitle">Technician</text>
-  <text x="209" y="214" text-anchor="middle" class="boxText">Operator GUI</text>
-  <text x="209" y="237" text-anchor="middle" class="boxText">guided device preparation</text>
-  <text x="519" y="187" text-anchor="middle" class="boxTitle">Deployment automation</text>
-  <text x="519" y="214" text-anchor="middle" class="boxText">PowerShell CLI</text>
-  <text x="519" y="237" text-anchor="middle" class="boxText">repeatable and unattended</text>
-  <text x="829" y="187" text-anchor="middle" class="boxTitle">OEM or reseller</text>
-  <text x="829" y="214" text-anchor="middle" class="boxText">Factory preparation</text>
-  <text x="829" y="237" text-anchor="middle" class="boxText">technical integration route</text>
-
-  <g filter="url(#shadow)">
-    <rect x="1034" y="151" width="342" height="246" rx="18" fill="#233b5f"/>
-  </g>
-  <text x="1205" y="193" text-anchor="middle" class="whiteTitle">WindowsDeviceLink</text>
-  <text x="1205" y="222" text-anchor="middle" class="whiteText">GUI and PowerShell use the same</text>
-  <text x="1205" y="244" text-anchor="middle" class="whiteText">validated lifecycle operations</text>
-  <line x1="1075" y1="270" x2="1335" y2="270" stroke="#769bc7"/>
-  <text x="1080" y="301" class="whiteText">Direct</text>
-  <text x="1080" y="325" class="whiteText">Interactive or DeviceCode</text>
-  <text x="1080" y="351" class="whiteText">Function App API (recommended)</text>
-  <text x="1080" y="373" class="whiteText">Catalog • lookup • move • offboard</text>
-
-  <path d="M209 255 V289 H1034" fill="none" stroke="#3976b9" stroke-width="3" marker-end="url(#arrow)"/>
-  <path d="M519 255 V289" fill="none" stroke="#3976b9" stroke-width="3"/>
-  <path d="M829 255 V289" fill="none" stroke="#3976b9" stroke-width="3"/>
-
-  <text x="64" y="326" class="section">WHERE IT RUNS</text>
-  <g filter="url(#shadow)">
-    <rect x="64" y="345" width="445" height="126" rx="16" fill="#e7f2ff" stroke="#8ebce9"/>
-    <rect x="529" y="345" width="445" height="126" rx="16" fill="#eaf7f1" stroke="#8fc8b2"/>
-  </g>
-  <text x="286" y="384" text-anchor="middle" class="boxTitle">AMD64 Windows PE</text>
-  <text x="286" y="413" text-anchor="middle" class="boxText">Bring your own compatible Microsoft DLL</text>
-  <text x="286" y="439" text-anchor="middle" class="boxText">Create identity + pre-associate before Windows exists</text>
-  <text x="751" y="384" text-anchor="middle" class="boxTitle">Windows 11</text>
-  <text x="751" y="413" text-anchor="middle" class="boxText">Use the registered system runtime</text>
-  <text x="751" y="439" text-anchor="middle" class="boxText">Pre-associate or complete association immediately</text>
-  <path d="M509 408 H529" fill="none" stroke="#3976b9" stroke-width="3" marker-end="url(#arrow)"/>
-  <path d="M974 408 H1034" fill="none" stroke="#3976b9" stroke-width="3" marker-end="url(#arrow)"/>
-
-  <text x="64" y="527" class="section">COMPLETE DEVICE ASSOCIATION LIFECYCLE</text>
-  <path d="M150 624 H1278" fill="none" stroke="#9db2c8" stroke-width="5"/>
-  <g>
-    <circle cx="150" cy="624" r="25" fill="#3976b9"/><text x="150" y="630" text-anchor="middle" class="number">1</text>
-    <circle cx="385" cy="624" r="25" fill="#3976b9"/><text x="385" y="630" text-anchor="middle" class="number">2</text>
-    <circle cx="610" cy="624" r="25" fill="#338567"/><text x="610" y="630" text-anchor="middle" class="number">3</text>
-    <circle cx="835" cy="624" r="25" fill="#8b62b3"/><text x="835" y="630" text-anchor="middle" class="number">4</text>
-    <circle cx="1060" cy="624" r="25" fill="#d47a3d"/><text x="1060" y="630" text-anchor="middle" class="number">5</text>
-    <circle cx="1278" cy="624" r="25" fill="#338567"/><text x="1278" y="630" text-anchor="middle" class="number">6</text>
-  </g>
-
-  <text x="150" y="573" text-anchor="middle" class="phaseTitle">Pre-associate</text>
-  <text x="150" y="673" text-anchor="middle" class="phaseText">Before installation</text>
-  <text x="150" y="694" text-anchor="middle" class="phaseText">from WinPE or Windows</text>
-
-  <text x="385" y="573" text-anchor="middle" class="phaseTitle">Install + OOBE</text>
-  <text x="385" y="673" text-anchor="middle" class="phaseText">Windows automatically</text>
-  <text x="385" y="694" text-anchor="middle" class="phaseText">completes association</text>
-
-  <text x="610" y="573" text-anchor="middle" class="phaseTitle">In service</text>
-  <text x="610" y="673" text-anchor="middle" class="phaseText">Inspect local and</text>
-  <text x="610" y="694" text-anchor="middle" class="phaseText">cloud state</text>
-
-  <text x="835" y="573" text-anchor="middle" class="phaseTitle">Tenant move</text>
-  <text x="835" y="673" text-anchor="middle" class="phaseText">Find, remove and</text>
-  <text x="835" y="694" text-anchor="middle" class="phaseText">reassign with Backend</text>
-
-  <text x="1060" y="573" text-anchor="middle" class="phaseTitle">Offboard</text>
-  <text x="1060" y="673" text-anchor="middle" class="phaseText">Remove cloud record</text>
-  <text x="1060" y="694" text-anchor="middle" class="phaseText">and reset local state</text>
-
-  <text x="1278" y="573" text-anchor="middle" class="phaseTitle">Reuse</text>
-  <text x="1278" y="673" text-anchor="middle" class="phaseText">Ready for a new</text>
-  <text x="1278" y="694" text-anchor="middle" class="phaseText">device journey</text>
-
-  <path d="M1278 725 C1278 790 150 790 150 725" fill="none" stroke="#338567" stroke-width="3" marker-end="url(#arrowGreen)"/>
-  <text x="714" y="744" text-anchor="middle" class="phaseText">Re-enroll the same device when ownership or purpose changes</text>
+  <text x="180" y="258" text-anchor="middle" class="boxTitle">Prepare</text>
+  <text x="180" y="287" text-anchor="middle" class="boxText">Windows PE or Windows 11</text><text x="180" y="314" text-anchor="middle" class="boxText">Create the local identity</text><text x="180" y="341" text-anchor="middle" class="boxText">before deployment</text>
+  <text x="465" y="258" text-anchor="middle" class="boxTitle">Pre-associate</text>
+  <text x="465" y="287" text-anchor="middle" class="boxText">Create the cloud record</text><text x="465" y="314" text-anchor="middle" class="boxText">in the target tenant</text><text x="465" y="341" text-anchor="middle" class="boxText">before OOBE</text>
+  <text x="750" y="258" text-anchor="middle" class="boxTitle">Deploy + associate</text>
+  <text x="750" y="287" text-anchor="middle" class="boxText">Windows installation and OOBE</text><text x="750" y="314" text-anchor="middle" class="boxText">complete the local binding</text><text x="750" y="341" text-anchor="middle" class="boxText">on supported Windows 11</text>
+  <text x="1035" y="258" text-anchor="middle" class="boxTitle">Manage or move</text>
+  <text x="1035" y="287" text-anchor="middle" class="boxText">Inspect local and cloud state</text><text x="1035" y="314" text-anchor="middle" class="boxText">or reconcile a tenant change</text><text x="1035" y="341" text-anchor="middle" class="boxText">with the appropriate cleanup</text>
+  <text x="1290" y="258" text-anchor="middle" class="boxTitle">Offboard</text>
+  <text x="1290" y="287" text-anchor="middle" class="boxText">Remove cloud state</text><text x="1290" y="314" text-anchor="middle" class="boxText">and clear local binding</text><text x="1290" y="341" text-anchor="middle" class="boxText">when required</text>
+  <rect x="304" y="281" width="76" height="27" rx="13.5" fill="#3976b9"/><text x="342" y="300" text-anchor="middle" class="action">NEW</text>
+  <rect x="875" y="281" width="76" height="27" rx="13.5" fill="#8b62b3"/><text x="913" y="300" text-anchor="middle" class="action">MOVE</text>
+  <rect x="1158" y="281" width="86" height="27" rx="13.5" fill="#d47a3d"/><text x="1201" y="300" text-anchor="middle" class="action">REMOVE</text>
+  <path d="M1290 398 C1290 505 180 505 180 398" fill="none" stroke="#338567" stroke-width="3" marker-end="url(#arrowGreen)"/>
+  <text x="735" y="474" text-anchor="middle" class="loop">Reset, reassign and reuse the same physical device</text>
 </svg>

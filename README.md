@@ -36,8 +36,8 @@ and unattended use.
   `Windows.Management.Service.dll`.
 - **Use a GUI or automate with PowerShell.** Support guided technician workflows and
   repeatable or unattended deployment automation with the same lifecycle operations.
-- **Manage multiple tenants.** Direct mode supports explicit tenant selection; Backend
-  mode adds central lookup, unattended assignment and controlled tenant moves.
+- **Manage multiple tenants.** Direct mode works with one explicitly selected signed-in
+  tenant at a time; Backend centrally searches and reconciles all consented tenants.
 - **Integrate through the included Function App API.** Use authenticated endpoints for
   tenant discovery, pre-association, reconciliation, offboarding and verification while
   Microsoft Graph credentials remain off Windows and WinPE endpoints.
@@ -125,10 +125,20 @@ The **Associate** action completes the local device-side association and is avai
 |---|---|---|
 | Connects to | Microsoft Graph | Your Azure Function backend |
 | Authentication | Operator sign-in: Interactive or DeviceCode | Function API credential; Graph app credentials stay in Azure |
-| Tenant support | One or multiple tenants; select a target for each operation | One or multiple tenants; centrally managed catalog |
+| Tenant support | One or multiple tenants; one selected and signed-in tenant per operation | One or multiple tenants; centrally managed catalog |
+| Tenant switching | Sign out, select another tenant and sign in again | No operator tenant switching |
 | Cloud lookup | Selected tenant only | All configured tenants |
+| Decision model | Operator selects the tenant and operation | Lookup and reconciliation determine the required action and tenant |
+| Lifecycle actions | Lookup, New and Remove; a cross-tenant move is performed as separate source removal and target creation | Lookup, New, no change, Repair, verified Move, Remove and post-state verification |
 | Best fit | Interactive work across known tenants without a backend | Recommended for multitenant management, unattended assignment and verified tenant moves |
 | Azure backend required | No | Yes |
+
+![WindowsDeviceLink Direct and Backend tenant-access architecture](docs/images/direct-backend-architecture.svg)
+
+*Both the operator GUI and PowerShell commands support both modes. Direct operates against
+one explicitly selected signed-in tenant at a time. Backend uses one Entra app registration
+with consent in one or more configured tenants and performs lookup and reconciliation before
+selecting New, no change, Repair, Move or Remove.*
 
 For a **Direct-mode tenant selector in the GUI**, load a configuration containing multiple tenants:
 
@@ -136,7 +146,7 @@ For a **Direct-mode tenant selector in the GUI**, load a configuration containin
 Show-WindowsDeviceLink -Configuration 'E:\Config\devicelink.json'
 ```
 
-Select a tenant and sign in with an account that has sufficient rights there. Sign out before selecting another tenant. Configuration can be a local JSON file, HTTPS URL or inline JSON; see [multiple-tenant configuration examples](docs/CONFIGURATION.md#multiple-tenants-and-app-registrations). Direct checks the selected tenant; Backend adds lookup across all configured tenants and verified tenant moves.
+Select a tenant and sign in with an account that has sufficient rights there. Sign out before selecting another tenant. Configuration can be a local JSON file, HTTPS URL or inline JSON; see [multiple-tenant configuration examples](docs/CONFIGURATION.md#multiple-tenants-and-app-registrations). Direct checks only the selected tenant. Backend uses one Entra app registration with consent in one or more configured tenants, searches that catalog first and reconciles the required action and tenant.
 
 For **unattended execution**, use the Backend CLI with an explicit target tenant and a securely supplied API key. Interactive and DeviceCode sign-in require a user. A backend failure does not silently fall back to Direct mode.
 

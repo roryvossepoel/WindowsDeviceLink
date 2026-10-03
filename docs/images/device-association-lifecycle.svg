@@ -4,20 +4,24 @@
   <defs>
     <linearGradient id="background" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f7faff"/><stop offset="1" stop-color="#eef4fb"/></linearGradient>
     <filter id="shadow" x="-15%" y="-15%" width="130%" height="140%"><feDropShadow dx="0" dy="5" stdDeviation="8" flood-color="#172b4d" flood-opacity="0.13"/></filter>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0,0 L9,5 L0,10 Z" fill="#8198b0"/></marker>
     <marker id="arrowGreen" markerWidth="11" markerHeight="11" refX="9" refY="5.5" orient="auto"><path d="M0,0 L10,5.5 L0,11 Z" fill="#338567"/></marker>
     <style>
       .title { font: 700 34px 'Segoe UI', Arial, sans-serif; fill: #172b4d; }
       .subtitle { font: 400 18px 'Segoe UI', Arial, sans-serif; fill: #536579; }
-      .boxTitle { font: 700 19px 'Segoe UI', Arial, sans-serif; fill: #172b4d; }
-      .boxText { font: 400 14px 'Segoe UI', Arial, sans-serif; fill: #536579; }
+      .boxTitle { font: 700 21px 'Segoe UI', Arial, sans-serif; fill: #172b4d; }
+      .boxText { font: 400 16px 'Segoe UI', Arial, sans-serif; fill: #536579; }
       .action { font: 700 14px 'Segoe UI', Arial, sans-serif; fill: white; letter-spacing: .5px; }
-      .loop { font: 600 14px 'Segoe UI', Arial, sans-serif; fill: #287457; }
+      .loop { font: 600 16px 'Segoe UI', Arial, sans-serif; fill: #287457; }
     </style>
   </defs>
   <rect width="1440" height="560" rx="24" fill="url(#background)"/>
   <text x="720" y="58" text-anchor="middle" class="title">The complete device journey</text>
   <text x="720" y="89" text-anchor="middle" class="subtitle">Prepare before Windows installation, manage across tenants, and offboard safely for reuse</text>
-  <path d="M210 294 H1230" fill="none" stroke="#b0c1d3" stroke-width="5"/>
+  <path d="M300 300 H337" fill="none" stroke="#8198b0" stroke-width="4" marker-end="url(#arrow)"/>
+  <path d="M585 300 H622" fill="none" stroke="#8198b0" stroke-width="4" marker-end="url(#arrow)"/>
+  <path d="M870 300 H907" fill="none" stroke="#8198b0" stroke-width="4" marker-end="url(#arrow)"/>
+  <path d="M1155 300 H1192" fill="none" stroke="#8198b0" stroke-width="4" marker-end="url(#arrow)"/>
   <g filter="url(#shadow)">
     <rect x="60" y="210" width="240" height="168" rx="18" fill="#e7f2ff" stroke="#8ebce9"/>
     <rect x="345" y="210" width="240" height="168" rx="18" fill="white"/>
@@ -35,9 +39,10 @@
   <text x="1035" y="287" text-anchor="middle" class="boxText">Inspect local and cloud state</text><text x="1035" y="314" text-anchor="middle" class="boxText">or reconcile a tenant change</text><text x="1035" y="341" text-anchor="middle" class="boxText">with the appropriate cleanup</text>
   <text x="1290" y="258" text-anchor="middle" class="boxTitle">Offboard</text>
   <text x="1290" y="287" text-anchor="middle" class="boxText">Remove cloud state</text><text x="1290" y="314" text-anchor="middle" class="boxText">and clear local binding</text><text x="1290" y="341" text-anchor="middle" class="boxText">when required</text>
-  <rect x="304" y="281" width="76" height="27" rx="13.5" fill="#3976b9"/><text x="342" y="300" text-anchor="middle" class="action">NEW</text>
-  <rect x="875" y="281" width="76" height="27" rx="13.5" fill="#8b62b3"/><text x="913" y="300" text-anchor="middle" class="action">MOVE</text>
-  <rect x="1158" y="281" width="86" height="27" rx="13.5" fill="#d47a3d"/><text x="1201" y="300" text-anchor="middle" class="action">REMOVE</text>
-  <path d="M1290 398 C1290 505 180 505 180 398" fill="none" stroke="#338567" stroke-width="3" marker-end="url(#arrowGreen)"/>
-  <text x="735" y="474" text-anchor="middle" class="loop">Reset, reassign and reuse the same physical device</text>
+  <rect x="307" y="166" width="70" height="30" rx="15" fill="#3976b9"/><text x="342" y="187" text-anchor="middle" class="action">NEW</text>
+  <rect x="877" y="166" width="72" height="30" rx="15" fill="#8b62b3"/><text x="913" y="187" text-anchor="middle" class="action">MOVE</text>
+  <rect x="1159" y="166" width="84" height="30" rx="15" fill="#d47a3d"/><text x="1201" y="187" text-anchor="middle" class="action">REMOVE</text>
+  <path d="M1290 400 C1290 515 180 515 180 400" fill="none" stroke="#338567" stroke-width="3" marker-end="url(#arrowGreen)"/>
+  <rect x="505" y="438" width="460" height="30" rx="15" fill="#eef4fb"/>
+  <text x="735" y="459" text-anchor="middle" class="loop">Reset, reassign and reuse the same physical device</text>
 </svg>

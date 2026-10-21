@@ -1,0 +1,107 @@
+name: Bug report
+description: Report a reproducible WindowsDeviceLink problem
+title: "[Bug]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a problem. Do not include secrets, live DeviceLink payloads, association JWTs, certificates, private keys or identifying customer/device data. Report vulnerabilities privately through the Security tab.
+  - type: input
+    id: version
+    attributes:
+      label: WindowsDeviceLink version
+      description: Use `Get-Module WindowsDeviceLink -ListAvailable | Select-Object Name, Version, Path`.
+      placeholder: 1.0.0
+    validations:
+      required: true
+  - type: dropdown
+    id: environment
+    attributes:
+      label: Environment
+      options:
+        - Windows 11 AMD64
+        - Windows 11 ARM64
+        - AMD64 Windows PE
+        - ARM64 Windows PE (currently unvalidated)
+        - Other
+    validations:
+      required: true
+  - type: dropdown
+    id: mode
+    attributes:
+      label: Mode
+      options:
+        - Local only
+        - Direct
+        - Backend
+        - Not sure
+    validations:
+      required: true
+  - type: dropdown
+    id: interface
+    attributes:
+      label: Interface
+      options:
+        - PowerShell CLI
+        - Operator GUI
+        - Function App API
+        - Multiple or not applicable
+    validations:
+      required: true
+  - type: dropdown
+    id: authentication
+    attributes:
+      label: Authentication route
+      options:
+        - Interactive
+        - DeviceCode
+        - Backend API key
+        - Not applicable or not sure
+    validations:
+      required: true
+  - type: textarea
+    id: command
+    attributes:
+      label: Command or action
+      description: Show the exact command or GUI/API action with secrets and identifiers replaced.
+      render: powershell
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Reproduction steps
+      description: Provide the shortest repeatable sequence.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior and sanitized output
+      description: Replace tenant IDs, app IDs, serials, UUIDs, Link IDs, association IDs, URLs and customer names.
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Include the Windows build, runtime source/version and relevant sanitized diagnostics when available.
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Safety checklist
+      options:
+        - label: I tested or reproduced this with the latest stable release.
+          required: true
+        - label: I searched existing issues for the same problem.
+          required: true
+        - label: I removed secrets, payloads, JWTs and identifying customer/device data.
+          required: true
+        - label: This is not a vulnerability report.
+          required: true

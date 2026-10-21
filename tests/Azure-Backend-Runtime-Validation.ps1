@@ -67,6 +67,14 @@ function Invoke-RestMethod {
     }
 
     Assert-True ($Uri -like 'https://graph.microsoft.com/beta/deviceManagement/tenantAssociatedDevices*') 'Unexpected outbound endpoint.'
+    if ($Method -eq 'GET') {
+        Assert-True ($Uri.Contains('?')) 'Serial lookup must not enumerate the unfiltered collection.'
+        if ($Uri -notmatch 'skiptoken=') {
+            $decodedUri = [uri]::UnescapeDataString($Uri)
+            $expectedFilter = "serialNumber eq '$($global:wdlBackendTest_serial.Replace("'", "''"))'"
+            Assert-True ($decodedUri.Contains('$filter=' + $expectedFilter)) 'Lookup must filter on the escaped exact serial number.'
+        }
+    }
     $tenant = ([string]$Headers.Authorization).Replace('Bearer mock-token-', '')
     if ($global:wdlBackendTest_scenario.StartsWith('operation-')) {
         $scenario = $global:wdlBackendTest_scenario
@@ -107,8 +115,7 @@ function Invoke-RestMethod {
         return @{ value = @() }
     }
     Assert-True ($Method -eq 'GET') 'Lookup must never mutate Graph state.'
-    $fallback = -not $Uri.Contains('?')
-    if ($global:wdlBackendTest_scenario -eq 'graph401' -or ($global:wdlBackendTest_scenario -eq 'fallback401' -and $fallback)) {
+    if ($global:wdlBackendTest_scenario -eq 'graph401') {
         Throw-UpstreamTestError 401 (@{
             error = @{ code = 'InvalidAuthenticationToken'; message = $global:wdlBackendTest_secretMarker }
         } | ConvertTo-Json -Depth 4 -Compress)
@@ -116,9 +123,16 @@ function Invoke-RestMethod {
     if ($global:wdlBackendTest_scenario -eq 'malformed401') {
         Throw-UpstreamTestError 401 "<html>$($global:wdlBackendTest_secretMarker)</html>"
     }
+    if ($global:wdlBackendTest_scenario -in @('paged','pageFailure')) {
+        if (-not $Uri.Contains('skiptoken=')) {
+            return @{ value = @(); '@odata.nextLink' = ($Uri + '&skiptoken=second') }
+        }
+        if ($global:wdlBackendTest_scenario -eq 'pageFailure') {
+            Throw-UpstreamTestError 401 '{"error":{"code":"InvalidAuthenticationToken"}}'
+        }
+    }
     if ($global:wdlBackendTest_scenario -eq 'duplicate' -or
-        (($global:wdlBackendTest_scenario -eq 'one' -or $global:wdlBackendTest_scenario -eq 'partial') -and $tenant -eq $global:wdlBackendTest_tenantA) -or
-        ($global:wdlBackendTest_scenario -eq 'fallbackMatch' -and $fallback -and $tenant -eq $global:wdlBackendTest_tenantA)) {
+        (($global:wdlBackendTest_scenario -in @('one','partial','paged')) -and $tenant -eq $global:wdlBackendTest_tenantA)) {
         return @{ value = @([pscustomobject]@{
             id = "association-$tenant"
             serialNumber = $global:wdlBackendTest_serial
@@ -279,14 +293,17 @@ try {
     Assert-True ($result.Body.matchCount -eq 0 -and $result.Body.successfulTenantCount -eq 2 -and $result.Body.failedTenantCount -eq 0) 'Absent device must have zero matches and two successful tenant searches.'
     Assert-True ($result.Body.matches -is [array] -and $result.Body.matches.Count -eq 0) 'Zero matches must serialize as an empty JSON array.'
     Assert-True ($result.Body.tenantErrors -is [array] -and $result.Body.tenantErrors.Count -eq 0) 'Zero failures must serialize as an empty JSON array.'
-    Assert-True ($global:wdlBackendTest_httpCalls.Count -eq 6) 'Absent device must check filtered and fallback collections in both tenants.'
+    Assert-True ($global:wdlBackendTest_httpCalls.Count -eq 4) 'Absent device must use one token request and one filtered Graph request per tenant.'
+    Assert-True (@($result.Body.tenants | Where-Object lookupMode -ne 'ServerFilter').Count -eq 0) 'Empty successful searches must retain ServerFilter lookup mode.'
     Write-Host 'PASS: absent device / empty Graph collections'
 
-    foreach ($case in @('one','duplicate','fallbackMatch')) {
+    foreach ($case in @('one','duplicate','paged')) {
         $result = Invoke-LookupTest $case
         $expectedCount = if ($case -eq 'duplicate') { 2 } else { 1 }
         Assert-True ($result.Body.matchCount -eq $expectedCount -and $result.Body.failedTenantCount -eq 0) "$case returned incorrect results."
         Assert-True ($result.Body.matches -is [array] -and $result.Body.matches.Count -eq $expectedCount) "$case did not preserve JSON array shape."
+        $expectedCalls = if ($case -eq 'paged') { 6 } else { 4 }
+        Assert-True ($global:wdlBackendTest_httpCalls.Count -eq $expectedCalls) "$case made unexpected Graph requests."
         Write-Host "PASS: $case"
     }
 
@@ -300,9 +317,9 @@ try {
     Assert-True ($global:wdlBackendTest_httpCalls.Count -eq 2) 'Token failures must not call Graph.'
     Write-Host 'PASS: both tenants return token 401; sanitized diagnostics'
 
-    foreach ($case in @('graph401','fallback401','malformed401')) {
+    foreach ($case in @('graph401','pageFailure','malformed401')) {
         $result = Invoke-LookupTest $case
-        $expectedStage = if ($case -eq 'fallback401') { 'GraphLookupFallback' } else { 'GraphLookup' }
+        $expectedStage = 'GraphLookup'
         Assert-True ($result.Body.failedTenantCount -eq 2) "$case must retain both tenant errors."
         foreach ($errorItem in $result.Body.tenantErrors) {
             Assert-True ($errorItem.stage -eq $expectedStage -and $errorItem.statusCode -eq 401) "$case stage/status incorrect."
@@ -323,8 +340,10 @@ try {
     . (Join-Path $stageRoot 'shared/BackendAuth.ps1')
     . (Join-Path $stageRoot 'shared/AssociationOperations.ps1')
     $global:wdlBackendTest_scenario = 'absent'
+    $global:wdlBackendTest_httpCalls.Clear()
     $empty = Get-WindowsDeviceLinkTenantAssociation -TenantId $global:wdlBackendTest_tenantA -SerialNumber $global:wdlBackendTest_serial
     Assert-True ($empty.Matches -is [array] -and $empty.Matches.Count -eq 0) 'Shared association lookup must support an absent device.'
+    Assert-True ($empty.LookupMode -eq 'ServerFilter' -and $global:wdlBackendTest_httpCalls.Count -eq 2) 'Shared lookup must return an empty filtered result without enumerating the tenant.'
     Assert-True ($global:wdlBackendTest_tokenClients[$global:wdlBackendTest_tenantA] -eq '44444444-4444-4444-4444-444444444444') 'Tenant A did not use its authentication profile.'
     $null = Get-WindowsDeviceLinkTenantAssociation -TenantId $global:wdlBackendTest_tenantB -SerialNumber $global:wdlBackendTest_serial
     Assert-True ($global:wdlBackendTest_tokenClients[$global:wdlBackendTest_tenantB] -eq '55555555-5555-5555-5555-555555555555') 'Tenant B did not use its authentication profile.'

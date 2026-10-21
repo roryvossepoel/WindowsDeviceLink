@@ -41,18 +41,19 @@ A server-provided next link is never allowed to redirect bearer-token traffic to
 
 ## Serial-number lookup
 
-The beta API has been observed to return no result for a server-side `serialNumber` filter even when a matching Device Association exists. WindowsDeviceLink therefore:
+WindowsDeviceLink uses the server-side `serialNumber` filter, follows its result
+pages with bounded paging, and validates exact serial matches locally. A successful
+filtered lookup with no matching records means no association was found. No
+unfiltered collection scan is performed after a zero-match result.
 
-1. attempts the server-side serial-number filter;
-2. validates returned records locally against the exact requested serial number;
-3. if there is no exact match, enumerates the collection using bounded paging;
-4. performs exact client-side serial matching.
+The same strategy applies to Direct lookup and Backend lookup/verification:
 
-The fallback is fail-safe:
+- duplicate matches remain ambiguous and block automatic lifecycle changes;
+- failed requests, malformed collection responses and paging failures remain errors;
+- incomplete multitenant coverage cannot confirm absence across the tenant catalog.
 
-- more than one exact serial match is treated as ambiguous and rejected;
-- if full enumeration contains records with no `serialNumber`, absence of the requested serial number is not considered proven;
-- an ambiguous or malformed result must not become `NotAssociated` / `LocalOnly`.
+This replaces the historical workaround for Graph filter false negatives and relies
+on Graph applying the requested filter correctly.
 
 ## Response validation
 

@@ -62,11 +62,6 @@ function Remove-WindowsDeviceLinkAssociationCore {
             $escapedSerial=$SerialNumber.Replace("'","''");$filter=[uri]::EscapeDataString("serialNumber eq '$escapedSerial'");$lookupUri="$baseUri/deviceManagement/tenantAssociatedDevices?`$filter=$filter"
             $filteredRecords=@(Get-WindowsDeviceLinkGraphCollection -Uri $lookupUri @graphReadParameters)
             $matches=@(Resolve-WindowsDeviceLinkSerialAssociationRecords -Records $filteredRecords -SerialNumber $SerialNumber)
-            if($matches.Count -eq 0){
-                Write-Information -InformationAction Continue -MessageData 'Filtered serial-number lookup returned no exact match; retrying with client-side matching.'
-                $allRecords=@(Get-WindowsDeviceLinkGraphCollection -Uri "$baseUri/deviceManagement/tenantAssociatedDevices" @graphReadParameters)
-                $matches=@(Resolve-WindowsDeviceLinkSerialAssociationRecords -Records $allRecords -SerialNumber $SerialNumber -RequireCompleteSerialCoverage)
-            }
             if($matches.Count -eq 0){throw "No Device Association record was found for serial number '$SerialNumber'."}
             $resolvedAssociationId=[string]$matches[0].id;$resolvedSerialNumber=[string]$matches[0].serialNumber
             if([string]::IsNullOrWhiteSpace($resolvedAssociationId) -or $resolvedAssociationId -eq [guid]::Empty.ToString()){throw "Microsoft Graph returned a malformed Device Association record for serial number '$SerialNumber': association ID is missing or empty."}

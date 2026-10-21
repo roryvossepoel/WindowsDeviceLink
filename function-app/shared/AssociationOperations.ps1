@@ -33,13 +33,6 @@ function Get-WindowsDeviceLinkTenantAssociation {
         $matches = @(Get-WindowsDeviceLinkExactSerialMatches -Records $filtered -SerialNumber $SerialNumber)
         $lookupMode = 'ServerFilter'
 
-        if ($matches.Count -eq 0) {
-            $allUri = 'https://graph.microsoft.com/beta/deviceManagement/tenantAssociatedDevices'
-            $all = @(Invoke-WindowsDeviceLinkGraphCollection -Uri $allUri -AccessToken $token)
-            $matches = @(Get-WindowsDeviceLinkExactSerialMatches -Records $all -SerialNumber $SerialNumber)
-            $lookupMode = 'ClientFallback'
-        }
-
         [pscustomobject]@{
             TenantId = $TenantId
             LookupMode = $lookupMode

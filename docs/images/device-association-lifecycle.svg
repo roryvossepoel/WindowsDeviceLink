@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1440" height="560" viewBox="0 0 1440 560" role="img" aria-labelledby="title description">
   <title id="title">WindowsDeviceLink device lifecycle</title>
-  <desc id="description">A device is prepared, pre-associated through New, associated during deployment, and placed in service. From there it can be moved back to pre-association in another tenant or removed through offboarding and prepared for reuse.</desc>
+  <desc id="description">A device is prepared, pre-associated through New, fully associated during Windows OOBE or explicitly on supported Windows 11, and placed in service. A Move returns the device to pre-association in another tenant and can then continue to full association. Remove offboards the device and prepares it for reuse.</desc>
   <defs>
     <linearGradient id="background" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f7faff"/><stop offset="1" stop-color="#eef4fb"/></linearGradient>
     <filter id="shadow" x="-15%" y="-15%" width="130%" height="140%"><feDropShadow dx="0" dy="5" stdDeviation="8" flood-color="#172b4d" flood-opacity="0.13"/></filter>
@@ -34,14 +34,14 @@
   <text x="180" y="287" text-anchor="middle" class="boxText">Windows PE or Windows 11</text><text x="180" y="314" text-anchor="middle" class="boxText">Create the local identity</text><text x="180" y="341" text-anchor="middle" class="boxText">before deployment</text>
   <text x="465" y="258" text-anchor="middle" class="boxTitle">Pre-associate</text>
   <text x="465" y="287" text-anchor="middle" class="boxText">Create the cloud record</text><text x="465" y="314" text-anchor="middle" class="boxText">in the target tenant</text><text x="465" y="341" text-anchor="middle" class="boxText">before OOBE</text>
-  <text x="750" y="258" text-anchor="middle" class="boxTitle">Deploy + associate</text>
-  <text x="750" y="287" text-anchor="middle" class="boxText">Windows installation and OOBE</text><text x="750" y="314" text-anchor="middle" class="boxText">complete the local binding</text><text x="750" y="341" text-anchor="middle" class="boxText">on supported Windows 11</text>
+  <text x="750" y="258" text-anchor="middle" class="boxTitle">Complete association</text>
+  <text x="750" y="287" text-anchor="middle" class="boxText">During Windows 11 OOBE</text><text x="750" y="314" text-anchor="middle" class="boxText">or explicitly in full Windows</text><text x="750" y="341" text-anchor="middle" class="boxText">complete the local binding</text>
   <text x="1035" y="258" text-anchor="middle" class="boxTitle">In service</text>
   <text x="1035" y="287" text-anchor="middle" class="boxText">Inspect local and cloud state</text><text x="1035" y="314" text-anchor="middle" class="boxText">in the current tenant</text><text x="1035" y="341" text-anchor="middle" class="boxText">until move or offboarding</text>
   <text x="1290" y="258" text-anchor="middle" class="boxTitle">Offboard</text>
   <text x="1290" y="287" text-anchor="middle" class="boxText">Remove cloud state</text><text x="1290" y="314" text-anchor="middle" class="boxText">and clear local binding</text><text x="1290" y="341" text-anchor="middle" class="boxText">when required</text>
-  <rect x="307" y="166" width="70" height="30" rx="15" fill="#3976b9"/><text x="342" y="187" text-anchor="middle" class="action">NEW</text>
-  <rect x="1159" y="166" width="84" height="30" rx="15" fill="#d47a3d"/><text x="1201" y="187" text-anchor="middle" class="action">REMOVE</text>
+  <rect x="284" y="166" width="70" height="30" rx="15" fill="#3976b9"/><text x="319" y="187" text-anchor="middle" class="action">NEW</text>
+  <rect x="1132" y="166" width="84" height="30" rx="15" fill="#d47a3d"/><text x="1174" y="187" text-anchor="middle" class="action">REMOVE</text>
   <path d="M1035 210 C1035 126 465 126 465 202" fill="none" stroke="#8b62b3" stroke-width="3" marker-end="url(#arrowPurple)"/>
   <rect x="712" y="112" width="76" height="30" rx="15" fill="#8b62b3"/><text x="750" y="133" text-anchor="middle" class="action">MOVE</text>
   <path d="M1290 400 C1290 515 180 515 180 400" fill="none" stroke="#338567" stroke-width="3" marker-end="url(#arrowGreen)"/>

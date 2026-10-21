@@ -101,7 +101,12 @@ The returned object uses the type name `Windows.DeviceLink.Association` and cont
 
 ### Serial-number lookup note
 
-Live validation showed that the Graph beta endpoint can accept a `serialNumber` filter yet return no match for a record that is present. The module therefore retains a paged client-side matching fallback. This produced correct results for both existing and absent associations, but may be inefficient with large Device Association populations. The behavior is tracked in GitHub issue #1 and should be retested as the beta API evolves.
+Serial-number lookup uses the Graph beta `serialNumber` filter and follows any pages
+of that filtered response. Returned records are checked for an exact serial match.
+A successful response with no match returns no association; the module does not
+enumerate the full tenant collection. Failed requests remain errors rather than
+being interpreted as absence. Earlier releases used a full-list workaround for
+observed Graph filter false negatives; the current source relies on the filter.
 
 ## Combined online status
 

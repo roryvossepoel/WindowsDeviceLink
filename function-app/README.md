@@ -92,7 +92,9 @@ Invoke-RestMethod `
     -Headers @{ 'X-WindowsDeviceLink-Key' = $env:WINDOWSDEVICELINK_WEBHOOK_API_KEY }
 ```
 
-It first tries the Graph serial-number filter and then falls back to paged client-side matching when needed.
+It uses the Graph serial-number filter in each tenant, follows filtered result pages,
+and validates exact serial matches locally. A successful zero-match response does not
+trigger an unfiltered collection scan. Failed or incomplete searches remain errors.
 
 See [../docs/MULTITENANT-LOOKUP.md](../docs/MULTITENANT-LOOKUP.md).
 

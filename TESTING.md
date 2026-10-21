@@ -577,7 +577,13 @@ compatibility scope; they are not all required for the next preview.
 
 - Trusted code signing; the initial SignPath Foundation application was reviewed but not approved because the project does not yet have enough external adoption/visibility signals. Revisit SignPath or another trusted signing path later.
 - Retest normal WinPE `Install-Module` without `-SkipPublisherCheck` after signing.
-- Retest and optimize the beta Device Association serial-number server-side lookup; the current client-side fallback is functionally correct.
+- Serial-number lookup: on 2026-10-21, an operator-reported live Backend lookup found
+  one existing association with `success=True`, `lookupMode=ServerFilter` and
+  `matchCount=1` in one tenant. The current source removes full-list fallback from
+  Direct and Backend paths. This live result covers the existing filter path only;
+  it does not establish that Graph false negatives are resolved everywhere or that
+  the modified Function App has been deployed. Record a post-deployment known-present,
+  known-absent and multitenant smoke test; large-tenant performance is unmeasured.
 - Retain earlier app-authentication evidence and automated custom client-app routing
   coverage; repeat live custom-app routing only for a relevant change or regression.
   Fixed tenant labels, JSON loading, tenant switching and sign-out have live evidence.

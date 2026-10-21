@@ -144,6 +144,108 @@ $matches=@(Resolve-SerialRecords -Records $completeNoMatch -Serial 'TEST-SERIAL'
 Assert-True ($matches.Count -eq 0) 'complete non-matching enumeration should confirm zero exact matches.'
 Write-Host 'PASS: complete serial coverage can confirm absence'
 
+# Exercise the Direct lookup itself with mocked HTTP, retaining real collection paging
+# and serial resolution. Empty filter responses must not trigger tenant enumeration.
+foreach ($case in @('empty','match','paged','duplicates','failure','pageFailure','malformed')) {
+    $outcome = & $module {
+        param($Scenario)
+        $lookupCalls = New-Object System.Collections.Generic.List[string]
+        $testSerial = "TEST'SERIAL"
+        function Invoke-WindowsDeviceLinkGraphGet {
+            param($Uri, $AccessToken, $MaxAttempts)
+            $lookupCalls.Add($Uri)
+            if ($Uri -notlike '*?*' -or -not ([uri]::UnescapeDataString($Uri)).Contains("serialNumber eq 'TEST''SERIAL'")) {
+                throw 'Unexpected unfiltered or incorrectly escaped lookup.'
+            }
+            if ($Scenario -eq 'failure' -or ($Scenario -eq 'pageFailure' -and $lookupCalls.Count -eq 2)) {
+                throw 'HTTP 403 Forbidden'
+            }
+            if ($Scenario -eq 'malformed') { return @{ unexpected = @() } }
+            if ($Scenario -in @('paged','pageFailure') -and $lookupCalls.Count -eq 1) {
+                return @{ value = @(); '@odata.nextLink' = ($Uri + '&skiptoken=second') }
+            }
+            if ($Scenario -eq 'empty') { return @{ value = @() } }
+            $record = [pscustomobject]@{
+                id = '11111111-1111-1111-1111-111111111111'
+                serialNumber = $testSerial
+                associationState = 'preassociated'
+            }
+            if ($Scenario -eq 'duplicates') { return @{ value = @($record, $record) } }
+            return @{ value = @($record) }
+        }
+        $records = @()
+        $failure = $null
+        try {
+            $token = ConvertTo-SecureString 'synthetic-token' -AsPlainText -Force
+            $records = @(Get-WindowsDeviceLinkAssociationCore -SerialNumber $testSerial -Method AccessToken -TenantId 'tenant-test' -AccessToken $token)
+        }
+        catch { $failure = $_.Exception.Message }
+        [pscustomobject]@{ Records = $records; Error = $failure; Calls = $lookupCalls.Count }
+    } $case
+    $expectedCalls = if ($case -in @('paged','pageFailure')) { 2 } else { 1 }
+    Assert-True ($outcome.Calls -eq $expectedCalls) "Direct $case made unexpected collection requests."
+    if ($case -in @('failure','pageFailure','duplicates','malformed')) {
+        $expectedError = switch ($case) {
+            'duplicates' { 'Multiple Device Association records' }
+            'malformed' { 'malformed Device Association collection' }
+            default { 'HTTP 403 Forbidden' }
+        }
+        Assert-True ($outcome.Error -like "*$expectedError*") "Direct $case must fail explicitly, got '$($outcome.Error)'."
+    }
+    else {
+        $expectedCount = if ($case -eq 'empty') { 0 } else { 1 }
+        Assert-True (-not $outcome.Error -and $outcome.Records.Count -eq $expectedCount) "Direct $case returned incorrect records or an error: $($outcome.Error)"
+    }
+    Write-Host "PASS: Direct filtered lookup / $case"
+}
+
+# Removal by serial must use the same filter-only policy and must never delete on
+# an empty, failed or ambiguous lookup. All DELETE calls below are mocked.
+foreach ($case in @('empty','match','duplicates','failure')) {
+    $outcome = & $module {
+        param($Scenario)
+        $calls = New-Object System.Collections.Generic.List[string]
+        $deletes = New-Object System.Collections.Generic.List[string]
+        function Get-WindowsDeviceLinkGraphCollection {
+            param($Uri, $AccessToken)
+            $calls.Add($Uri)
+            if (-not ([uri]::UnescapeDataString($Uri)).Contains("`$filter=serialNumber eq 'TEST-SERIAL'")) {
+                throw 'Unexpected unfiltered lookup.'
+            }
+            if ($Scenario -eq 'failure') { throw 'HTTP 403 Forbidden' }
+            if ($Scenario -eq 'empty') { return }
+            $record = [pscustomobject]@{ id = '11111111-1111-1111-1111-111111111111'; serialNumber = 'TEST-SERIAL' }
+            $record
+            if ($Scenario -eq 'duplicates') { $record }
+        }
+        function Invoke-WindowsDeviceLinkGraphDelete {
+            param($Uri, $AccessToken)
+            $deletes.Add($Uri)
+        }
+        $failure = $null
+        try {
+            $token = ConvertTo-SecureString 'synthetic-token' -AsPlainText -Force
+            $null = Remove-WindowsDeviceLinkAssociationCore -SerialNumber 'TEST-SERIAL' -Method AccessToken -TenantId 'tenant-test' -AccessToken $token -Confirm:$false
+        }
+        catch { $failure = $_.Exception.Message }
+        [pscustomobject]@{ Error = $failure; Calls = $calls.Count; Deletes = @($deletes.ToArray()) }
+    } $case
+    Assert-True ($outcome.Calls -eq 1) "Removal $case must perform one filtered lookup."
+    if ($case -eq 'match') {
+        Assert-True (-not $outcome.Error -and $outcome.Deletes.Count -eq 1) 'Unique filtered match must permit exactly one DELETE.'
+        Assert-True ($outcome.Deletes[0].EndsWith('/11111111-1111-1111-1111-111111111111')) 'DELETE must target the matched association ID.'
+    }
+    else {
+        $expectedError = switch ($case) {
+            'empty' { 'No Device Association record was found' }
+            'duplicates' { 'Multiple Device Association records' }
+            default { 'HTTP 403 Forbidden' }
+        }
+        Assert-True ($outcome.Error -like "*$expectedError*" -and $outcome.Deletes.Count -eq 0) "Removal $case must block DELETE and report the lookup outcome."
+    }
+    Write-Host "PASS: Removal filtered lookup / $case"
+}
+
 # Native registration transport has deterministic 409 handling and validates its response.
 $conflictRequest={param($Uri,$Body,$AccessToken)throw 'HTTP 409 Conflict'}
 Assert-Throws -Name 'Registration 409 returns actionable conflict error' -ExpectedMessage 'pre-association already exists or conflicts' -ScriptBlock {

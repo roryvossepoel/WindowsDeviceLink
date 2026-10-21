@@ -150,7 +150,6 @@ foreach ($needle in @(
     'credentialSetting',
     'tenantAssociatedDevices',
     'ServerFilter',
-    'ClientFallback',
     'tenantErrors',
     'Get-WindowsDeviceLinkBackendGraphToken'
 )) {

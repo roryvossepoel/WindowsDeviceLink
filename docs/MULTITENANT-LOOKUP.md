@@ -60,23 +60,26 @@ When `tenantId` is omitted, the Function searches every tenant in
 
 When `tenantId` is supplied, only that tenant is searched and it must still be present in the allow list.
 
-## Why the lookup has a fallback
+## Filtered lookup per tenant
 
-Microsoft Graph's beta `tenantAssociatedDevices` endpoint has been observed to accept a serial-number `$filter` but return no match even when a matching Device Association exists.
+The Function queries Microsoft Graph's beta `tenantAssociatedDevices` endpoint with
+`$filter=serialNumber eq '<serial>'` in each selected tenant. It follows any pages of
+that filtered response and verifies exact serial-number matches locally.
 
-The Function therefore mirrors the WindowsDeviceLink module behavior:
+A successful filtered response with no matching records means the device was not
+found in that tenant. The Function does not fetch the unfiltered tenant collection.
+Successful tenant results report `lookupMode: ServerFilter`, including zero matches.
+Authentication, transport and paging failures remain tenant errors, not absence.
 
-```text
-1. try server-side serialNumber filter
-2. verify exact serial-number match client-side
-3. if no exact match:
-       enumerate the tenantAssociatedDevices collection
-       match serialNumber client-side
-```
+This avoids an additional tenant-wide scan for every tenant without a match. The
+same strategy is used for Direct lookup and the Backend registration, reconciliation
+and offboarding verification paths. Duplicate matches and incomplete tenant coverage
+remain blockers for automatic lifecycle decisions.
 
-This prioritizes correctness over speed.
-
-For a backend managing many tenants or tenants with large Device Association populations, lookup latency can increase because each tenant may require a paged collection fallback.
+Earlier releases used a full-list fallback for observed Graph filter false negatives.
+The current source removes that workaround and relies on the server-side filter.
+Deploy the updated Function App package to apply this change to an existing backend;
+updating only the endpoint's PowerShell module does not update the hosted API.
 
 ## Example
 
@@ -146,7 +149,7 @@ An absent device returns `matchCount: 0`, `matches: []`, and no tenant error whe
 
 Tenant errors also include safe diagnostic fields:
 
-- `stage`: `GraphToken`, `GraphLookup`, or `GraphLookupFallback`;
+- `stage`: `GraphToken` or `GraphLookup`;
 - `statusCode`: the upstream HTTP status, when available;
 - `upstreamErrorCode`: a recognized OAuth or Graph error code;
 - `aadstsCodes`: numeric Entra error codes, such as `AADSTS700027`;

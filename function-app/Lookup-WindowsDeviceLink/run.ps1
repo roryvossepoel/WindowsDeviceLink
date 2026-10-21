@@ -173,16 +173,6 @@ foreach ($tenantId in $tenantsToSearch) {
         $records = @(Get-ExactSerialMatches -Records $filtered -SerialNumber $serialNumber)
         $lookupMode = 'ServerFilter'
 
-        if ($records.Count -eq 0) {
-            $stage = 'GraphLookupFallback'
-            $allUri = 'https://graph.microsoft.com/beta/deviceManagement/tenantAssociatedDevices'
-            $all = @(
-                Invoke-WindowsDeviceLinkGraphCollection -Uri $allUri -AccessToken $token
-            )
-            $records = @(Get-ExactSerialMatches -Records $all -SerialNumber $serialNumber)
-            $lookupMode = 'ClientFallback'
-        }
-
         foreach ($record in $records) {
             $matches.Add((ConvertTo-LookupMatch -Record $record -TenantId $tenantId -TenantName $tenantName))
         }

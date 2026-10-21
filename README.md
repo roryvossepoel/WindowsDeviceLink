@@ -260,6 +260,9 @@ Start with [backend deployment](docs/AZURE-BACKEND.md),
 | Remove an association correctly | [Offboarding](docs/OFFBOARDING.md) |
 | Browse exported cmdlets | [Command reference](docs/COMMANDS.md) |
 | Browse all technical documentation | [Documentation index](docs/README.md) |
+| Get help or report a reproducible problem | [Support](SUPPORT.md) |
+| Contribute code, tests or documentation | [Contributing](CONTRIBUTING.md) |
+| Report a vulnerability privately | [Security policy](SECURITY.md) |
 
 ## Release and support status
 

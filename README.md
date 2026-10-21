@@ -57,7 +57,7 @@ Existing Autopilot v1 registrations can remain during a transition to Device Pre
 | Complete local association | Yes | Yes | Direct or Backend | Supported full Windows 11 |
 | Multiple tenants and controlled moves | Yes | Yes | Direct or Backend; Backend recommended | Windows 11 (AMD64/ARM64) and AMD64 WinPE |
 | Diagnostics and official CSV export | Yes | Yes | Local where possible | Windows 11 (AMD64/ARM64) and AMD64 WinPE |
-| Cloud removal and local reset | Yes | Yes | Depends on the selected operation | Supported full Windows 11 |
+| Cloud removal and local reset | Yes | Yes | Depends on the selected operation | Windows 11 (AMD64/ARM64) and AMD64 WinPE |
 
 > [!NOTE]
 > Certificate and client-secret authentication are used by the recommended Backend when it
